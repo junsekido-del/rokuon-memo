@@ -229,16 +229,34 @@ input[type=file]:not([style*=none]){font-size:17px;max-width:100%}input[type=fil
 .tiles button{min-height:58px;font-size:20px;border-radius:12px;background:#3a3a3c;color:#fff;border:1px solid #555}
 .tiles button.on{background:#0a84ff;border-color:#0a84ff;font-weight:700}
 .sph button,.spf button{min-height:48px;font-size:18px;padding:0 18px;border-radius:10px}
+nav button .ic{font-style:normal;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:var(--ic);font-size:20px;margin-right:12px;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+nav button span{white-space:nowrap}
+@media (max-width:899px){nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:14px}nav button .ic{margin:0 0 2px;width:30px;height:30px;font-size:17px}}
+@media (min-width:900px){nav button{min-height:62px !important;margin-bottom:6px !important}nav button.on{box-shadow:inset 0 0 0 2px var(--ic)}}
+@media (min-width:900px){body:not([data-view=list]){grid-template-columns:var(--c1) 0 1fr !important}body:not([data-view=list]) #tab-list{display:none !important}}
+.grp{background:var(--chip) !important;border-radius:14px !important;border-left:6px solid var(--accent);padding:14px 16px !important;margin-top:12px !important;font-size:24px !important}
+.grp small{font-size:15px !important}
+.talk b{font-size:18px !important;font-weight:500}
+.trow.kid .talk b{font-size:16px !important}
+.trow,.swp{position:relative;overflow:hidden}
+.swdel{position:absolute;left:0;top:0;bottom:0;width:96px;border:0 !important;border-radius:0 !important;background:#E5484D;color:#fff;font-size:18px;font-weight:700;visibility:hidden}
+.sw>.swdel{visibility:visible}
+.trow>*:not(.swdel),.swp>*:not(.swdel){transition:transform .15s}
+.sw>*:not(.swdel){transform:translateX(96px)}
+.bib{font-size:20px !important;font-weight:700;padding:14px 16px;border-radius:12px;margin:8px 0}
+.bib.ok{background:#12382a;color:#6FD38B;border:2px solid #2f9e6a}.bib.no{background:#3a2a10;color:#F0A35B;border:2px solid #b9791f}
+.krow{display:flex;gap:6px;align-items:center}.krow .kr{flex:1}.krow button.mv{min-height:44px;width:44px;padding:0;border-radius:10px}
+#kinds .nh button{float:right;min-height:30px !important;font-size:14px !important;padding:2px 12px !important;border-radius:15px;border:0;background:var(--chip);color:var(--ink)}
 </style>
 </head>
 <body>
 <nav id="nav">
-  <button data-tab="rec" class="on">録音</button>
-  <button data-tab="list">メモ一覧</button>
-  <button data-tab="prog">プログラム</button>
-  <button data-tab="sch">予定表</button>
-  <button data-tab="dict">辞書</button>
-  <button data-tab="conf">設定</button>
+  <button data-tab="rec" class="on" style="--ic:#E5484D"><i class="ic">🎙️</i><span>録音</span></button>
+  <button data-tab="list" style="--ic:#F5A623"><i class="ic">📒</i><span>メモ一覧</span></button>
+  <button data-tab="prog" style="--ic:#3E8EF7"><i class="ic">📋</i><span>プログラム</span></button>
+  <button data-tab="sch" style="--ic:#30B27A"><i class="ic">📅</i><span>予定表</span></button>
+  <button data-tab="dict" style="--ic:#A66BE8"><i class="ic">📖</i><span>辞書</span></button>
+  <button data-tab="conf" style="--ic:#8E8E93"><i class="ic">⚙️</i><span>設定</span></button>
   <div id="kinds"></div>
 </nav>
 <div id="emptyPane">メモを選んでください</div>
@@ -319,7 +337,7 @@ input[type=file]:not([style*=none]){font-size:17px;max-width:100%}input[type=fil
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.3</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.4</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -1242,7 +1260,8 @@ var SCR = (function () {
     return got.map(function (v) { return (got.length > 1 ? v + ' ' : '') + ch[v]; }).join('　');
   }
   function showBibleState() {
-    $('bibState').textContent = bibleBooks ? '取り込み済み（' + bibleBooks + '書）。聖句に本文が付きます。' : 'まだ取り込まれていません。聖句は書名と章節だけが入ります。';
+    $('bibState').className = 'bib ' + (bibleBooks ? 'ok' : 'no');
+    $('bibState').textContent = bibleBooks ? '✓ 取り込み済み（' + bibleBooks + '書）　聖句に本文が付きます' : '！ まだ取り込まれていません　聖句は書名と章節だけが入ります';
   }
   $('bibFile').onchange = async function () {
     var f = $('bibFile').files[0]; if (!f) return;
@@ -1785,23 +1804,46 @@ var SCR = (function () {
     index.forEach(function (x) { (x.tags || []).forEach(function (t) { c[t] = (c[t] || 0) + 1; }); });
     return c;
   }
+  var kindEdit = false;
+  function kindOrder() {
+    var o = lsGet('rm_kindorder', null); if (!Array.isArray(o)) return KINDS.slice();
+    var r = o.filter(function (k) { return KINDS.indexOf(k) >= 0; });
+    KINDS.forEach(function (k) { if (r.indexOf(k) < 0) r.push(k); });
+    return r;
+  }
+  function applyKindSelects() {
+    ['sesKind', 'dKind'].forEach(function (id) {
+      var sel = $(id), v = sel.value; sel.innerHTML = '';
+      kindOrder().forEach(function (k) { sel.appendChild(el('option', null, k)); });
+      if (v) sel.value = v;
+    });
+  }
   function renderKinds() {
     var box = $('kinds'); box.innerHTML = '';
-    box.appendChild(el('div', 'nh', '種別'));
-    var cur = $('fKind').value;
-    KINDS.forEach(function (k) {
+    var nh = el('div', 'nh', '種別'), eb = el('button', null, kindEdit ? '完了' : '並べ替え');
+    eb.onclick = function () { kindEdit = !kindEdit; renderKinds(); };
+    nh.appendChild(eb); box.appendChild(nh);
+    var cur = $('fKind').value, ord = kindOrder();
+    ord.forEach(function (k, i) {
       var n = index.filter(function (x) { return (x.kind || 'その他') === k; }).length;
       var b = el('button', 'kr' + (cur === k ? ' on' : ''));
       b.appendChild(el('span', null, k)); b.appendChild(el('span', 'cnt', String(n)));
-      b.onclick = function () { $('fKind').value = (cur === k ? '' : k); document.querySelector('#nav button[data-tab=list]').click(); };
-      box.appendChild(b);
+      if (!kindEdit) { b.onclick = function () { $('fKind').value = (cur === k ? '' : k); goTab('list', true); }; box.appendChild(b); return; }
+      var row = el('div', 'krow'); row.appendChild(b);
+      [['▲', -1], ['▼', 1]].forEach(function (p) {
+        var m = el('button', 'mv', p[0]); m.disabled = (i + p[1] < 0 || i + p[1] >= ord.length);
+        m.onclick = function () { var o2 = ord.slice(); o2.splice(i, 1); o2.splice(i + p[1], 0, k); lsSet('rm_kindorder', o2); renderKinds(); };
+        row.appendChild(m);
+      });
+      box.appendChild(row);
     });
+    applyKindSelects();
     var tc = allTags(), names = Object.keys(tc).sort(function (a, b) { return tc[b] - tc[a] || (a < b ? -1 : 1); });
     if (names.length) box.appendChild(el('div', 'nh', 'タグ'));
     names.forEach(function (t) {
       var b = el('button', 'kr' + (fTag === t ? ' on' : ''));
       b.appendChild(el('span', null, '＃' + t)); b.appendChild(el('span', 'cnt', String(tc[t])));
-      b.onclick = function () { fTag = (fTag === t ? '' : t); document.querySelector('#nav button[data-tab=list]').click(); };
+      b.onclick = function () { fTag = (fTag === t ? '' : t); goTab('list', true); };
       box.appendChild(b);
     });
   }
@@ -1849,6 +1891,30 @@ var SCR = (function () {
     var sec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) + Math.floor(x.startMs / 1000);
     return pad(Math.floor(sec / 3600) % 24) + ':' + pad(Math.floor(sec / 60) % 60);
   }
+  // 左から右へなぞると「削除」ボタンが出る
+  var swOpen = null;
+  function addSwipe(w, label, onDel) {
+    var d = el('button', 'swdel', '削除'); d.setAttribute('aria-label', label);
+    d.onclick = function (e) { e.stopPropagation(); if (window.confirm(label)) onDel(); };
+    w.insertBefore(d, w.firstChild);
+    var sx = 0, sy = 0, dx = 0, track = false;
+    w.addEventListener('touchstart', function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; dx = 0; track = true; }, { passive: true });
+    w.addEventListener('touchmove', function (e) { if (!track) return; var t = e.touches[0]; dx = t.clientX - sx; if (Math.abs(t.clientY - sy) > Math.abs(dx)) track = false; }, { passive: true });
+    w.addEventListener('touchend', function () {
+      if (!track) return; track = false;
+      if (dx > 50) { if (swOpen && swOpen !== w) swOpen.classList.remove('sw'); w.classList.add('sw'); swOpen = w; w._swAt = Date.now(); }
+      else if (dx < -30) { w.classList.remove('sw'); }
+    });
+    w.addEventListener('click', function (e) { if (w.classList.contains('sw') && !e.target.closest('.swdel')) { e.stopPropagation(); e.preventDefault(); w.classList.remove('sw'); } }, true);
+  }
+  function delTalk(x) {
+    api('deleteTalk', { sid: x.sid, tid: x.tid }, 1).then(function () { if (selKey === x.sid + '/' + x.tid) { selKey = ''; $('detail').classList.remove('on'); } return loadIndex(); })
+      .catch(function (e) { $('listMsg').textContent = '削除できませんでした: ' + e.message; });
+  }
+  function delSession(sid, n) {
+    api('deleteSession', { sid: sid }, 1).then(function () { $('detail').classList.remove('on'); return loadIndex(); })
+      .catch(function (e) { $('listMsg').textContent = '削除できませんでした: ' + e.message; });
+  }
   function renderList() {
     var qraw = $('q').value.trim(), pq = parseDateQuery(qraw.toLowerCase()), q = qraw.toLowerCase(), st = $('fStatus').value, box = $('talks');
     box.innerHTML = '';
@@ -1873,6 +1939,7 @@ var SCR = (function () {
       if (todoFirst) { var ta = todo(a) ? 0 : 1, tb = todo(b) ? 0 : 1; if (ta !== tb) return ta - tb; }
       return a < b ? 1 : a > b ? -1 : 0;
     });
+    if (collapseAll) { index.forEach(function (x) { openG[x.sid] = false; }); Object.keys(openP).forEach(function (k) { openP[k] = false; }); collapseAll = false; }
     var td = new Date(), today = td.getFullYear() + '-' + pad(td.getMonth() + 1) + '-' + pad(td.getDate());
     order.forEach(function (sid) {
       var g = groups[sid];
@@ -1884,7 +1951,8 @@ var SCR = (function () {
       gt.appendChild(el('small', null, (g[0].kind ? g[0].kind + '　' : '') + g.length + '件' + (n ? '　未整理 ' + n + '件' : '　すべて整理済')));
       h.appendChild(gt); h.appendChild(el('span', 'arrow', open ? '▾' : '▸'));
       h.onclick = function () { openG[sid] = !open; renderList(); };
-      box.appendChild(h);
+      var hw = el('div', 'swp'); hw.appendChild(h); addSwipe(hw, 'この行事のメモ ' + g.length + '件をすべて削除しますか？（Googleドライブのごみ箱に入ります）', function () { delSession(sid, g.length); });
+      box.appendChild(hw);
       if (!open) return;
       var body = el('div', 'grpBody');
       // シンポジウム：「親／副題」の題名は、同じ行事に「親」の講演があれば入れ子にする
@@ -1910,6 +1978,7 @@ var SCR = (function () {
           openDetail(x.sid, x.tid);
         };
         wrap.appendChild(b);
+        addSwipe(wrap, '「' + x.title + '」のメモを削除しますか？（Googleドライブのごみ箱に入ります）', function () { delTalk(x); });
         var ks = kids[x.tid];
         if (ks && !child) {
           var key = x.sid + '/' + x.tid, po = openP[key] !== undefined ? openP[key] : !!q;
@@ -2498,15 +2567,18 @@ var SCR = (function () {
     api('ping').then(function () { $('cfMsg').textContent = '接続できました'; return init(); })
       .catch(function (e) { $('cfMsg').textContent = '接続できません: ' + e.message; });
   };
-  Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (b) {
-    b.onclick = function () {
-      Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (x) { x.classList.toggle('on', x === b); });
-      Array.prototype.forEach.call(document.querySelectorAll('section'), function (s) { s.classList.toggle('on', s.id === 'tab-' + b.dataset.tab); });
-      $('logPane').classList.remove('on');
-      $('detail').classList.remove('on');
-      if ((b.dataset.tab === 'list' || wide()) && cfg.url && cfg.token) loadIndex();
-    };
-  });
+  var collapseAll = false;
+  function goTab(tab, keep) {
+    Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (x) { x.classList.toggle('on', x.dataset.tab === tab); });
+    Array.prototype.forEach.call(document.querySelectorAll('section'), function (s) { s.classList.toggle('on', s.id === 'tab-' + tab); });
+    document.body.dataset.view = tab;
+    $('logPane').classList.remove('on');
+    $('detail').classList.remove('on');
+    if (tab === 'list' && !keep) { $('fKind').value = ''; fTag = ''; $('q').value = ''; $('fStatus').value = ''; collapseAll = true; }   // 「メモ一覧」を押したら、すべてのメモを収納した状態で表示
+    if ((tab === 'list' || wide()) && cfg.url && cfg.token) loadIndex(); else if (tab === 'list') renderList();
+  }
+  document.body.dataset.view = 'rec';
+  Array.prototype.forEach.call(document.querySelectorAll('#nav button'), function (b) { b.onclick = function () { goTab(b.dataset.tab, false); }; });
   window.addEventListener('beforeunload', function (e) { if (running) { e.preventDefault(); e.returnValue = ''; } });
 
   function init() {
