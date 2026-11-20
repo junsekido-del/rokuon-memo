@@ -219,6 +219,7 @@
     body:has(#tab-rec.live) { grid-template-columns: 200px 0 1fr; }
     body:has(#tab-rec.live) #tab-list, body:has(#tab-rec.live) #kinds { display: none !important; }
   }
+input[type=file]:not([style*=none]){font-size:17px;max-width:100%}input[type=file]::file-selector-button{font-size:18px;font-weight:600;padding:16px 28px;margin-right:14px;border-radius:12px;border:1px solid #666;background:#3a3a3c;color:#fff}
 </style>
 </head>
 <body>
@@ -330,7 +331,7 @@
       <button id="btnProgDel">削除</button>
     </div>
     <label class="f" for="progFile">PDF または JWPUB から取り込む</label>
-    <input type="file" id="progFile" accept=".pdf,.jwpub,application/pdf">
+    <input type="file" id="progFile">
     <div id="progMsg" class="hint"></div>
     <label class="f" for="progName">名前</label>
     <input type="text" id="progName" placeholder="例：2026-2027 巡回大会">
@@ -349,7 +350,7 @@
       <button id="btnSchDel">削除</button>
     </div>
     <label class="f" for="schFile">予定表のPDFから取り込む</label>
-    <input type="file" id="schFile" accept=".pdf,application/pdf">
+    <input type="file" id="schFile">
     <div id="schMsg" class="hint"></div>
     <label class="f" for="schName">名前</label>
     <input type="text" id="schName" placeholder="例：2026年 公開講演の予定">
@@ -409,7 +410,7 @@
     <div class="hint">新世界訳聖書のJWPUBファイルを取り込むと、聖句がメモに入るときに本文も一緒に入ります。取り込みは一度だけで、本文はご自身のGoogleドライブに保存されます。ファイルが大きいので、Macで行ってください（数分かかります）。</div>
     <div id="bibState" class="hint"></div>
     <label class="f" for="bibFile">聖書のJWPUBファイル</label>
-    <input type="file" id="bibFile" accept=".jwpub">
+    <input type="file" id="bibFile">
     <div id="bibMsg" class="hint"></div>
   </div>
   <div class="card">
