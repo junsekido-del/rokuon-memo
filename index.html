@@ -220,6 +220,15 @@
     body:has(#tab-rec.live) #tab-list, body:has(#tab-rec.live) #kinds { display: none !important; }
   }
 input[type=file]:not([style*=none]){font-size:17px;max-width:100%}input[type=file]::file-selector-button{font-size:18px;font-weight:600;padding:16px 28px;margin-right:14px;border-radius:12px;border:1px solid #666;background:#3a3a3c;color:#fff}
+#scrPick{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center}
+#scrPick .spc{background:#1c1c1e;color:#fff;width:min(920px,96vw);height:min(94vh,720px);border-radius:16px;display:flex;flex-direction:column;overflow:hidden}
+.sph,.spf{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#2c2c2e}.sph b{flex:1;font-size:20px;text-align:center}
+.spf span{flex:1;font-size:18px}#spBody{flex:1;overflow:auto;padding:14px 16px}
+#spBody h4{margin:10px 0 8px;font-size:15px;opacity:.7}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px}
+.tiles button{min-height:58px;font-size:20px;border-radius:12px;background:#3a3a3c;color:#fff;border:1px solid #555}
+.tiles button.on{background:#0a84ff;border-color:#0a84ff;font-weight:700}
+.sph button,.spf button{min-height:48px;font-size:18px;padding:0 18px;border-radius:10px}
 </style>
 </head>
 <body>
@@ -233,6 +242,13 @@ input[type=file]:not([style*=none]){font-size:17px;max-width:100%}input[type=fil
   <div id="kinds"></div>
 </nav>
 <div id="emptyPane">メモを選んでください</div>
+
+
+<div id="scrPick" style="display:none"><div class="spc">
+  <div class="sph"><button id="spBack">‹ 戻る</button><b id="spTitle">聖句を選ぶ</b><button id="spClose">閉じる</button></div>
+  <div id="spBody"></div>
+  <div class="spf"><span id="spSel"></span><button id="spChap">章だけ追加</button><button id="spOk" class="primary">この聖句を追加</button></div>
+</div></div>
 
 <!-- 録音 -->
 <section id="tab-rec" class="on">
@@ -271,10 +287,10 @@ input[type=file]:not([style*=none]){font-size:17px;max-width:100%}input[type=fil
           <div class="ft"><label for="tTitle">講演タイトル</label><input type="text" id="tTitle" placeholder="タイトルを入力"></div>
           <div class="fs"><label for="tCong">会衆</label><input type="text" id="tCong" placeholder="会衆名" list="dlCong"></div>
           <div class="fs"><label for="tSpeaker">講演者</label><input type="text" id="tSpeaker" placeholder="名前" list="dlSpeaker"></div>
-          <button id="btnNext" class="primary">＋ 次の講演</button>
+          <button id="btnNext" class="primary" title="いまの講演を区切って、次の講演（別の話）のメモに切り替えます">▶ 次の講演へ切り替え</button>
         </div>
         <button id="trStrip" aria-label="文字起こしの全文を開く"><b>文字起こし</b><span id="trLast">（話し始めると、20〜30秒ほど遅れて表示されます）</span></button>
-        <div id="memos"><div id="memoEmpty">メモと聖句がここに並びます。聖句は文字起こしから自動で追加されます。</div></div>
+        <div id="memos"><div id="memoEmpty">メモと聖句がここに並びます。聖句は文字起こしから自動で追加されます。<br>右上の「▶ 次の講演へ切り替え」は、話が変わったときに押すと、タイトル・講演者を入れ替えて新しい講演のメモを始めます。</div></div>
       </div>
     </div>
     <div class="comp">
@@ -303,7 +319,7 @@ input[type=file]:not([style*=none]){font-size:17px;max-width:100%}input[type=fil
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.2</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.3</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -824,7 +840,7 @@ var SCR = (function () {
     scan(text, !!abbr).hits.forEach(function (h) { if (!seen[h.ref]) { seen[h.ref] = 1; out.push({ ref: h.ref, b: h.b, ch: h.ch, vs: h.vs }); } });
     return out;
   }
-  return { find: find, tidy: tidy, parse: parse };
+  return { find: find, tidy: tidy, parse: parse, books: BOOKS.map(function (b) { return { name: b[0], abbr: b[2] }; }) };
 })();
 </script>
 
@@ -903,7 +919,7 @@ var SCR = (function () {
       list.forEach(function (g) { schItems(g).forEach(function (it) { var d = dayDiff(it.date, todayStr()); if (d < bd) { bd = d; best = g.id; } }); });
       s2.value = (best && bd <= 7) ? best : '';
     }
-    fillSchItems();
+    fillSchItems(); autoName();
   }
   function fillSchItems() {
     var box = $('sesSchItem'); box.innerHTML = '';
@@ -920,7 +936,19 @@ var SCR = (function () {
       o.value = JSON.stringify(it); box.appendChild(o);
     });
   }
-  $('sesSch').onchange = fillSchItems;
+  var nameManual = false;
+  function autoName() {
+    if (nameManual) return;
+    var sch = findSch($('sesSch').value), it = null, g = findProg($('sesProg').value), nm = '';
+    try { it = sch && $('sesSchItem').value ? JSON.parse($('sesSchItem').value) : null; } catch (e) { it = null; }
+    if (sch && it) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(it.date); nm = (sch.type === '週中の集会' ? '週日の集会 ' : '週末の集会 ') + (m ? (+m[2]) + '月' + (+m[3]) + '日' : ''); }
+    else if (g) nm = g.name;
+    $('sesName').value = nm;
+  }
+  $('sesName').addEventListener('input', function () { nameManual = !!$('sesName').value.trim(); });
+  $('sesProg').addEventListener('change', autoName);
+  $('sesSchItem').addEventListener('change', autoName);
+  $('sesSch').onchange = function () { fillSchItems(); autoName(); };
   $('schSel').onchange = function () {
     var g = findSch($('schSel').value);
     $('schName').value = g ? g.name : ''; $('schType').value = g ? g.type : '週末の公開講演';
@@ -1401,11 +1429,13 @@ var SCR = (function () {
     try { schIt = sch && $('sesSchItem').value ? JSON.parse($('sesSchItem').value) : null; } catch (e) { schIt = null; }
     cur = { id: id, name: $('sesName').value.trim() || (schIt ? sch.name + ' ' + schIt.date : '録音メモ'), date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), kind: $('sesKind').value, talks: [] };
     var g = findProg($('sesProg').value), weekday = !!(sch && schIt && sch.type === '週中の集会'), progText = g ? g.text : '', dayIts = [];
+    var weekend = !!(sch && schIt && sch.type === '週末の公開講演' && !g && schIt.speaker && !/巡回訪問|巡回大会|特別プログラム/.test(schIt.title));
     if (weekday) {
       dayIts = schItems(sch).filter(function (x) { return x.date === schIt.date; });
       if (g && /^#\[/m.test(g.text)) progText = weekSlice(g.text, schIt.date) || '';          // ワークブックの該当週
       else if (!g || !weekSlice(g.text, schIt.date)) progText = dayIts.map(function (x) { return x.title; }).join('\n');   // ワークブックが無ければ予定表の項目から
     }
+    if (weekend) progText = '公開講演：' + schIt.title + '\n「塔」研究' + (schIt.reader ? '（朗読：' + schIt.reader + '）' : '');      // 週末は、公開講演と「塔」研究をセットで用意
     items = progText ? progItems(progText) : []; hasProg = items.length > 0; itemPos = -1; itemTalk = {};
     questions = g && !weekday ? progQuestions(g.text) : []; qSel = -1; memoStart = null; showQHint(); renderQuestions(); setPTab('items');
     $('progPane').classList.toggle('hasq', questions.length > 0);
@@ -1435,6 +1465,10 @@ var SCR = (function () {
           else tk.title = wt + '（予定表：' + tn + '）';                         // 違う項目（例：奉仕の話に差し替え）：両方を残す
           if (!tk.title) tk.title = wt;
         });
+      }
+      if (weekend) {
+        items.forEach(function (it, i) { if (itemTalk[i] == null) return; var tk = cur.talks[itemTalk[i]];
+          if (i === 0) { tk.speaker = schIt.speaker || ''; tk.cong = schIt.cong || sch.cong || ''; } else { tk.speaker = schIt.conductor || ''; tk.cong = sch.cong || ''; } });
       }
       talkIdx = 0; showTalk(); logAdd('title', 0, '（冒頭）'); touch();
     } else {
@@ -1518,11 +1552,72 @@ var SCR = (function () {
   // メモ入力
   Array.prototype.forEach.call(document.querySelectorAll('#chips button'), function (b) {
     b.onclick = function () {
+      if (b.dataset.tag === '聖句') { if (running) openScrPick(); return; }
       memoTag = memoTag === b.dataset.tag ? '' : b.dataset.tag;
       Array.prototype.forEach.call(document.querySelectorAll('#chips button'), function (x) { x.classList.toggle('on', x.dataset.tag === memoTag); });
       $('memoIn').focus();
     };
   });
+
+  // ---------- 聖句をタイルで選ぶ ----------
+  var CHN = [50,40,27,36,34,24,21,4,31,24,22,25,29,36,10,13,10,42,150,31,12,8,66,52,5,48,12,14,3,9,1,4,7,3,3,3,2,14,4,28,16,24,21,28,16,16,13,6,6,4,4,5,3,6,4,3,1,13,5,5,3,5,1,1,1,22];
+  var sp = { step: 'book', b: 0, ch: 0, sel: [], max: 40 };
+  function spRef() {
+    var v = sp.sel.slice().sort(function (a, b) { return a - b; }), out = [], i = 0;
+    while (i < v.length) { var j = i; while (j + 1 < v.length && v[j + 1] === v[j] + 1) j++; out.push(j > i ? v[i] + '-' + v[j] : '' + v[i]); i = j + 1; }
+    return SCR.books[sp.b - 1].name + ' ' + sp.ch + (out.length ? ':' + out.join('，') : '');
+  }
+  function tile(box, label, on, fn) { var b = el('button', on ? 'on' : null, label); b.onclick = fn; box.appendChild(b); }
+  async function spRender() {
+    var body = $('spBody'); body.innerHTML = '';
+    $('spBack').style.visibility = sp.step === 'book' ? 'hidden' : 'visible';
+    $('spOk').style.display = $('spChap').style.display = sp.step === 'vs' ? '' : 'none';
+    $('spSel').textContent = sp.step === 'vs' ? (sp.sel.length ? spRef() : SCR.books[sp.b - 1].name + ' ' + sp.ch + '章：節をタップ（続けて2つ押すと、まとめて選べます）') : '';
+    if (sp.step === 'book') {
+      $('spTitle').textContent = '聖句を選ぶ：書';
+      [['ヘブライ語聖書', 0, 39], ['ギリシャ語聖書', 39, 66]].forEach(function (g) {
+        body.appendChild(el('h4', null, g[0])); var t = el('div', 'tiles');
+        for (var i = g[1]; i < g[2]; i++) (function (i) { tile(t, SCR.books[i].abbr, false, function () { sp.b = i + 1; sp.step = 'ch'; sp.sel = []; spRender(); }); })(i);
+        body.appendChild(t);
+      });
+    } else if (sp.step === 'ch') {
+      $('spTitle').textContent = SCR.books[sp.b - 1].name + '：章';
+      var t = el('div', 'tiles');
+      for (var c = 1; c <= CHN[sp.b - 1]; c++) (function (c) { tile(t, '' + c, false, function () { sp.ch = c; sp.step = 'vs'; sp.sel = []; spRender(); }); })(c);
+      body.appendChild(t);
+    } else {
+      $('spTitle').textContent = SCR.books[sp.b - 1].name + ' ' + sp.ch + '章：節';
+      var max = 40, note = '';
+      if (bibleBooks) { var bk = await getBook(sp.b), cc = bk && bk.c && bk.c[sp.ch]; if (cc) max = Math.max.apply(null, Object.keys(cc).map(Number)); }
+      else note = '本文を取り込んでいないため、節の数は目安です。';
+      sp.max = max; if (note) body.appendChild(el('div', 'hint', note));
+      var t2 = el('div', 'tiles'); body.appendChild(t2);
+      for (var v = 1; v <= max; v++) (function (v) {
+        var b = el('button', sp.sel.indexOf(v) >= 0 ? 'on' : null, '' + v);
+        b.onclick = function () {
+          var k = sp.sel.indexOf(v);
+          if (k >= 0) sp.sel.splice(k, 1);
+          else if (sp.sel.length === 1 && sp.last === sp.sel[0] && v > sp.sel[0]) { for (var x = sp.sel[0]; x <= v; x++) if (sp.sel.indexOf(x) < 0) sp.sel.push(x); }   // 続けて2つ：間をまとめて選ぶ
+          else sp.sel.push(v);
+          sp.last = v; spRender();
+        };
+        t2.appendChild(b);
+      })(v);
+      $('spSel').textContent = sp.sel.length ? spRef() : SCR.books[sp.b - 1].name + ' ' + sp.ch + '章：節をタップ（続けて2つ押すと、まとめて選べます）';
+    }
+  }
+  function spAdd(text) {
+    if (!cur || !running) return;
+    var ti = talkIdx, ms = nowMs(), ps = SCR.parse(text, false);
+    $('scrPick').style.display = 'none';
+    Promise.all(ps.map(verseBody)).then(function (bodies) { memoAdd(ti, ms, '聖句', text, bodies.filter(Boolean).join('　／　')); });
+  }
+  $('spBack').onclick = function () { sp.step = sp.step === 'vs' ? 'ch' : 'book'; sp.sel = []; spRender(); };
+  $('spClose').onclick = function () { $('scrPick').style.display = 'none'; };
+  $('spOk').onclick = function () { if (sp.sel.length) spAdd(spRef()); };
+  $('spChap').onclick = function () { spAdd(SCR.books[sp.b - 1].name + ' ' + sp.ch); };
+  function openScrPick() { sp = { step: 'book', b: 0, ch: 0, sel: [], max: 40 }; $('scrPick').style.display = 'flex'; spRender(); }
+
   var memoStart = null, qSel = -1, pTab = 'items';
   $('memoIn').addEventListener('input', function () {      // メモの時刻は、打ち始めた瞬間
     if (!cur || !running) return;
@@ -1749,6 +1844,11 @@ var SCR = (function () {
     return { from: from, to: to, tokens: q.split(/[\s、，,]+/).filter(function (t) { return t && !/^(の|に|は|を|で|と|頃|ごろ)$/.test(t); }) };
   }
   var searchTimer = null, deepFor = '';
+  function clockOf(x) {      // 講演の開始時刻（録音を始めた時刻＋経過時間）
+    var m = /^\d{8}_(\d{2})(\d{2})(\d{2})/.exec(x.sid || ''); if (!m || x.startMs == null) return '';
+    var sec = (+m[1]) * 3600 + (+m[2]) * 60 + (+m[3]) + Math.floor(x.startMs / 1000);
+    return pad(Math.floor(sec / 3600) % 24) + ':' + pad(Math.floor(sec / 60) % 60);
+  }
   function renderList() {
     var qraw = $('q').value.trim(), pq = parseDateQuery(qraw.toLowerCase()), q = qraw.toLowerCase(), st = $('fStatus').value, box = $('talks');
     box.innerHTML = '';
@@ -1801,7 +1901,8 @@ var SCR = (function () {
         var bt = el('b'); bt.appendChild(el('i', 'dot2 ' + (x.status === '整理済' ? 'ok' : 'todo')));
         bt.appendChild(document.createTextNode(child ? x.title.slice(x.title.indexOf('／') + 1) : x.title));
         b.appendChild(bt);
-        var who = [x.cong, x.speaker].filter(Boolean).join('　');
+        var who = [x.cong, x.speaker].filter(Boolean).join('　'), ck = clockOf(x);
+        if (ck) who = ck + '〜' + (who ? '　' + who : '');
         if (who) b.appendChild(el('small', null, who));
         b.onclick = function () {
           selKey = x.sid + '/' + x.tid;
