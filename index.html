@@ -425,7 +425,7 @@ input,textarea{-webkit-text-security:none}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.12</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.15</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -660,6 +660,17 @@ input,textarea{-webkit-text-security:none}
       </div>
       <div id="verPanel" class="card sub"></div>
       <label class="f" for="dTrans">文字起こし</label><textarea id="dTrans" style="min-height:16em"></textarea>
+      <div class="card sub" style="margin-top:12px">
+        <label class="f" for="dOther">① iPad標準の録音アプリの文字起こし</label>
+        <div class="row"><button type="button" class="pasteBtn" data-t="dOther">📋 コピーした文章を貼り付け</button><button type="button" class="fileBtn" data-t="dOther">📄 テキストファイルを選ぶ</button><button type="button" class="clrBtn" data-t="dOther">消す</button></div>
+        <textarea id="dOther" style="min-height:6em" placeholder="iPad標準の文字起こしをコピーしてから、上の「貼り付け」を押します"></textarea>
+        <label class="f" for="dOther2">② 別で録音した文字起こし（なければ空のままで構いません）</label>
+        <div class="row"><button type="button" class="pasteBtn" data-t="dOther2">📋 コピーした文章を貼り付け</button><button type="button" class="fileBtn" data-t="dOther2">📄 テキストファイルを選ぶ</button><button type="button" class="clrBtn" data-t="dOther2">消す</button></div>
+        <textarea id="dOther2" style="min-height:6em" placeholder="別の録音の文字起こしがあれば、同じように貼り付けます"></textarea>
+        <input type="file" id="dOtherFile" accept=".txt,.md,text/plain" style="display:none">
+        <div class="row" style="margin-top:8px"><button id="dMerge" class="primary">このアプリの文字起こしと合算して清書</button></div>
+        <div class="hint">このアプリの文字起こし＋①＋②（入れたものだけ）を突き合わせ、聞き間違いを直して読みやすく整えます（文字だけをGeminiに送ります）。結果は「文章を差し替える」の欄に入るので、確認してから差し替えてください。今の文字起こしは「前の版」に残ります。</div>
+      </div>
       <div class="row" style="margin-top:8px"><button id="dRetrans">録音から文字起こしする（行事全体）</button><label class="chk" style="padding:0"><input type="checkbox" id="dDiar"> 話者を分ける</label></div>
       <div class="row" style="margin-top:8px"><button id="dSpeakers">話者に名前を割り当てる…</button></div>
       <div id="spkPanel" class="card sub"></div>
@@ -1116,14 +1127,23 @@ var SCR = (function () {
   }
   function isConv() { return ['巡回大会', '地区大会'].indexOf($('sesKind').value) >= 0; }
   function partNow() { return $('partBox').style.display !== 'none' ? $('sesPart').value : ''; }
+  var partManual = false;
+  function autoPart(hs) {      // 今の時刻から午前・午後を、記録済みの日付から「何日目」かを決める
+    var pm = new Date().getHours() >= 13, ap = pm ? '午後' : '午前', multi = hs.some(function (h) { return /日目/.test(h); });
+    if (!multi) { var h0 = hs.filter(function (h) { return h.indexOf(ap) >= 0; })[0]; return h0 || (pm ? hs[hs.length - 1] : hs[0]); }
+    var ser = convSeries(), ds = [], today = todayStr();
+    index.forEach(function (x) { if (x.series === ser && ds.indexOf(x.date) < 0) ds.push(x.date); });
+    ds.sort(); var maxDay = 0; hs.forEach(function (h) { var m = /^(\d+)日目/.exec(h); if (m) maxDay = Math.max(maxDay, +m[1]); });
+    var day = ds.indexOf(today) >= 0 ? ds.indexOf(today) + 1 : ds.length + 1; day = Math.min(Math.max(day, 1), maxDay || 1);
+    var want = day + '日目 ' + ap;
+    return hs.indexOf(want) >= 0 ? want : (hs.filter(function (h) { return h.indexOf(day + '日目') === 0; })[0] || hs[0]);
+  }
   function fillParts() {
     var g = isConv() ? findProg($('sesProg').value) : null, hs = g ? progHeads(g) : [], sel = $('sesPart'), keep = sel.value;
     $('partBox').style.display = hs.length > 1 ? '' : 'none';
     if (hs.length < 2) return;
     sel.innerHTML = ''; hs.forEach(function (h) { var o = el('option', null, h); o.value = h; sel.appendChild(o); });
-    var done = {}; index.forEach(function (x) { if (x.series === convSeries()) done[x.sname] = 1; });
-    var nx = hs.filter(function (h) { return !done[baseName() + ' ' + h]; })[0];      // まだ録音していない最初の部
-    if (hs.indexOf(keep) >= 0) sel.value = keep; else if (hs.some(function (h) { return /日目/.test(h); })) sel.value = nx || hs[0]; else sel.value = new Date().getHours() < 13 ? hs[0] : hs[hs.length - 1];
+    if (!partManual && hs.indexOf(autoPart(hs)) >= 0) sel.value = autoPart(hs); else if (hs.indexOf(keep) >= 0) sel.value = keep; else sel.value = autoPart(hs);
   }
   function sliceHead(text, head) {      // 選んだ部の項目だけ残す（質問の行は残す）
     var out = [], on = false, day = '';
@@ -1194,10 +1214,11 @@ var SCR = (function () {
   }
   $('sesName').addEventListener('input', function () { nameManual = !!$('sesName').value.trim(); });
   $('sesProg').addEventListener('change', function () { refreshDatalists(); fillParts(); autoName(); });
-  $('sesPart').addEventListener('change', function () { autoName(); });
+  $('sesPart').addEventListener('change', function () { partManual = true; autoName(); });
   $('sesSchItem').addEventListener('change', updateSetup);
   $('sesSch').onchange = function () { fillSchItems(); updateSetup(); };
-  $('sesKind').onchange = function () {      // 種別を変えたら、前のプログラム選択や名前を引きずらない
+  $('sesKind').onchange = function () {
+    partManual = false;      // 種別を変えたら、前のプログラム選択や名前を引きずらない
     $('sesProg').value = ''; fillProgSelects(); nameManual = false; seriesManual = false; refreshDatalists(); fillSchSelects();
   };
   $('sesMeet').addEventListener('change', autoName);
@@ -2043,6 +2064,7 @@ var SCR = (function () {
     if (other) cur.cong = congName;
     if ($('sesDiar').checked) cur.diar = true;
     if (kindV === '巡回訪問') { if ($('sesSeries').value.trim()) cur.series = $('sesSeries').value.trim(); cur.meeting = $('sesMeet').value; if ($('sesOverseer').value.trim()) cur.overseer = $('sesOverseer').value.trim(); }
+    if (!partManual && partNow()) { var hs0 = progHeads(findProg($('sesProg').value)); $('sesPart').value = autoPart(hs0); autoName(); }      // 開始した時刻で、午前・午後を選び直す
     var convPart = (['巡回大会', '地区大会'].indexOf(kindV) >= 0) ? partNow() : '';
     if (convPart) cur.series = convSeries();
     var g = (fs || hideProgKind(kindV)) ? null : findProg($('sesProg').value), weekday = !!(sch && schIt && sch.type === '週中の集会'), progText = g ? (convPart ? sliceHead(g.text, convPart) : g.text) : '', dayIts = [];
@@ -3263,6 +3285,37 @@ var SCR = (function () {
     var copy = JSON.parse(JSON.stringify(dSes)); delete copy.audioUrl;
     Promise.all(upPending).then(function () { upPending = []; return api('saveSession', { session: copy }, 1); }).then(function () { $('dMsg').textContent = '保存しました'; fillRead(); setEditing(false); return loadIndex(); })
       .catch(function (e) { $('dMsg').textContent = '保存に失敗: ' + e.message; });
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('.pasteBtn'), function (bt) {
+    bt.onclick = async function () {
+      var ta = $(bt.dataset.t);
+      try {
+        var tx = await navigator.clipboard.readText();
+        if (!tx.trim()) { toast('クリップボードが空です。先に文字起こしをコピーしてください'); return; }
+        ta.value = tx.trim(); toast('✓ 貼り付けました（' + tx.trim().length + '字）');
+      } catch (er) { ta.focus(); toast('自動で貼り付けられませんでした。\n入力欄を長押しして「ペースト」してください'); }
+    };
+  });
+  var fileTarget = '';
+  Array.prototype.forEach.call(document.querySelectorAll('.fileBtn'), function (bt) { bt.onclick = function () { fileTarget = bt.dataset.t; $('dOtherFile').value = ''; $('dOtherFile').click(); }; });
+  Array.prototype.forEach.call(document.querySelectorAll('.clrBtn'), function (bt) { bt.onclick = function () { $(bt.dataset.t).value = ''; }; });
+  $('dOtherFile').onchange = function () {
+    var f = $('dOtherFile').files[0]; if (!f || !fileTarget) return;
+    f.text().then(function (tx) { $(fileTarget).value = tx.trim(); toast('✓ 読み込みました（' + tx.trim().length + '字）'); });
+  };
+  $('dMerge').onclick = function () {
+    if (!dTalk) return;
+    var a = plainTrans($('dTrans').value, true), b = $('dOther').value.trim(), c = $('dOther2').value.trim();
+    if (!b && !c) { $('dMsg').textContent = '①か②に、合算したい文字起こしを貼り付けてください'; return; }
+    if (!a) { $('dMsg').textContent = 'このアプリの文字起こしがありません'; return; }
+    $('dMerge').disabled = true; $('dMsg').textContent = '合体して清書しています…（1〜2分かかることがあります）';
+    api('mergeTranscript', { a: a, b: b, c: c, dict: settings.dict, terms: terms + memoTermsFrom(dSes.talks), title: $('dTitle').value }, 1).then(function (out) {
+      $('replTarget').value = 'trans'; $('replText').value = out; $('verPanel').classList.remove('on'); $('replPanel').classList.add('on');
+      $('replPanel').scrollIntoView({ block: 'center' });
+      $('dMsg').textContent = '清書ができました。下の「文章を差し替える」の欄で確認し、「差し替える」を押してください。';
+      toast('✓ 清書ができました\n「差し替える」で文字起こしに反映します');
+    }).catch(function (e) { $('dMsg').textContent = '清書に失敗: ' + e.message; })
+      .then(function () { $('dMerge').disabled = false; });
   };
   $('dResum').onclick = function () {
     if (!dTalk) return;
