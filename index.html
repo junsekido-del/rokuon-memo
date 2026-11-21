@@ -248,6 +248,29 @@ nav button span{white-space:nowrap}
 .krow{display:flex;gap:6px;align-items:center}.krow .kr{flex:1}.krow button.mv{min-height:44px;width:44px;padding:0;border-radius:10px}
 #kinds .nh button{float:right;min-height:30px !important;font-size:14px !important;padding:2px 12px !important;border-radius:15px;border:0;background:var(--chip);color:var(--ink)}
 
+/* ---- v10.7 録音画面を小さめに、文字起こしを大きく ---- */
+:root{--trsz:22px}
+body.fz-s{--trsz:18px}body.fz-l{--trsz:27px}
+.bar{padding:6px 16px}#timer{font-size:22px}
+.lg{padding-top:8px}
+.head{gap:8px}.head label{display:none}
+#tTitle{font-size:19px;min-height:42px}
+#tCong,#tSpeaker{font-size:16px;min-height:42px}
+#btnNext{min-height:42px;font-size:15px;padding:4px 14px;line-height:1.15}
+#trStrip{align-items:flex-start;min-height:130px;max-height:36vh;overflow:auto}
+#trLast{font-size:var(--trsz);line-height:1.5;-webkit-line-clamp:8}
+.m{font-size:20px}
+#memoIn{min-height:60px;height:60px;font-size:20px}#btnMemo{font-size:18px;width:100px}
+.chips button{min-height:38px;font-size:15px}.chips{margin-bottom:6px}
+.item{font-size:15px;min-height:44px}
+#headBand{display:none;font-size:14px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:2px 4px}
+body.kb .head,body.kb #progPane{display:none !important}
+body.kb #headBand{display:block}
+body.kb #trStrip{max-height:none;min-height:0;flex:1}
+body.kb #trLast{-webkit-line-clamp:12}
+body.kb #memos{flex:0 0 22%}
+.sessdiv{margin:14px 0 6px;padding:4px 10px;font-size:14px;font-weight:700;color:var(--sub);border-left:4px solid var(--edge)}
+.guess{outline:2px dashed #E0A93B;outline-offset:-2px}
 /* ---- v10.5 ---- */
 .backconf{margin-bottom:10px;min-height:46px;font-size:18px;border-radius:23px;padding:0 20px}
 .bigbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
@@ -312,6 +335,10 @@ nav button span{white-space:nowrap}
       <input type="text" id="sesCong" placeholder="会衆名（候補から選べます）" list="dlCong">
     </div>
     <div id="seriesBox" style="display:none">
+      <label class="f" for="sesMeet">会合の種類</label>
+      <select id="sesMeet"><option>野外奉仕のための集まり</option><option>週中の集会</option><option>公開講演</option><option>奉仕の話</option><option>その他</option></select>
+      <label class="f" for="sesOverseer">巡回監督</label>
+      <input type="text" id="sesOverseer" placeholder="名前（名簿から選べます）" list="dlSpeaker">
       <label class="f" for="sesSeries">まとまりの名前（同じ名前にすると、メモ一覧で一つにまとまります）</label>
       <input type="text" id="sesSeries" list="dlSeries">
       <datalist id="dlSeries"></datalist>
@@ -350,6 +377,7 @@ nav button span{white-space:nowrap}
     <div class="lg" id="lg">
       <aside id="progPane"><div class="qtabs"><button id="pTabItems" class="on">項目</button><button id="pTabQ">質問</button></div><div id="recItems"></div><div id="recQ"></div></aside>
       <div class="main">
+        <div id="headBand"></div>
         <div class="head">
           <div class="ft"><label for="tTitle">講演タイトル</label><input type="text" id="tTitle" placeholder="タイトルを入力"></div>
           <div class="fs"><label for="tCong">会衆</label><input type="text" id="tCong" placeholder="会衆名" list="dlCong"></div>
@@ -386,7 +414,7 @@ nav button span{white-space:nowrap}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.6</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.8</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -415,6 +443,8 @@ nav button span{white-space:nowrap}
     <label class="f" for="progFile">PDF または JWPUB から取り込む</label>
     <input type="file" id="progFile">
     <div id="progMsg" class="hint"></div>
+    <label class="f" for="progKind">この種別で使う（録音を始めるとき、選んだ種別のプログラムだけが出ます）</label>
+    <select id="progKind"><option value="">（指定しない：どの種別でも出る）</option><option>週中の集会</option><option>週末の集会</option><option>巡回訪問</option><option>巡回大会</option><option>地区大会</option></select>
     <label class="f" for="progName">名前</label>
     <input type="text" id="progName" placeholder="例：2026-2027 巡回大会">
     <label class="f" for="progText">項目（1行に1項目。取り込み後に自由に直せます）</label>
@@ -440,9 +470,10 @@ nav button span{white-space:nowrap}
     <label class="f" for="schName">名前</label>
     <input type="text" id="schName" placeholder="例：2026年 公開講演の予定">
     <label class="f" for="schType">種類</label>
-    <select id="schType"><option>週末の公開講演</option><option>週中の集会</option><option>野外奉仕のための集まり</option></select>
+    <select id="schType"><option>週末の公開講演</option><option>週中の集会</option><option>野外奉仕のための集まり</option><option>巡回訪問</option></select>
     <label class="f" for="schCong">自分の会衆名（公開講演の予定表のとき、全講演に自動で入れます。週中の集会では使いません）</label>
     <input type="text" id="schCong" list="dlCong">
+    <div class="hint">巡回訪問の予定表：1行目に「巡回監督｜名前」、以降は「日付｜会合の種類｜担当者」を1行に1件（例：2026-11-17｜野外奉仕のための集まり｜山田 太郎）。会合の種類は 野外奉仕のための集まり／週中の集会／公開講演／奉仕の話／その他 のどれかを書きます。</div>
     <label class="f" for="schText">予定（1行に1件：日付｜タイトル｜講演者｜司会者｜朗読者。取り込み後に自由に直せます）</label>
     <textarea id="schText" style="min-height:14em" placeholder="2026-12-06｜講演のタイトル｜山田 太郎｜鈴木 一郎｜佐藤 次郎"></textarea>
     <button id="btnSchSave" class="primary">保存</button>
@@ -504,6 +535,11 @@ nav button span{white-space:nowrap}
     <button data-go="sch" style="--ic:#30B27A"><i class="ic">📅</i><span>予定表</span></button>
     <button data-go="dict" style="--ic:#A66BE8"><i class="ic">📖</i><span>辞書・名簿・会衆</span></button>
   </div></div>
+  <div class="card">
+    <h2>録音画面の文字の大きさ</h2>
+    <div class="hint">文字起こしの文字の大きさを選べます。</div>
+    <select id="fzSel"><option value="s">小</option><option value="m">中</option><option value="l">大</option></select>
+  </div>
   <div class="card">
     <h2>接続設定</h2>
     <label class="f" for="cfUrl">GASのウェブアプリURL（https://script.google.com/macros/s/…/exec）</label>
@@ -709,7 +745,7 @@ var JW = (function () {
       if (m) {
         var hh = parseInt(m[1], 10);
         if (pm && hh < 12) hh += 12;
-        if (/番の歌/.test(m[3]) || /^音楽$/.test(m[3])) return; // 歌・音楽は除く
+        
         res.timed++;
         res.lines.push((hh < 10 ? '0' : '') + hh + ':' + m[2] + ' ' + m[3]);
       } else {
@@ -1005,14 +1041,17 @@ var SCR = (function () {
       var p = line.split(/[｜|\t]/).map(function (x) { return x.trim(); });
       if (!/^\d{4}-\d{2}-\d{2}$/.test(p[0] || '')) return;
       if (sc && sc.type === '野外奉仕のための集まり') { var ch = p[1] || p[3] || p[2] || ''; out.push({ date: p[0], title: '野外奉仕のための集まり', speaker: ch, chair: ch, reader: '', cong: '', conductor: '' }); return; }
+      if (sc && sc.type === '巡回訪問') { out.push({ date: p[0], title: p[1] || '', speaker: p[2] || '', chair: '', reader: '', cong: '', conductor: '', meet: p[1] || '' }); return; }
       out.push({ date: p[0], title: p[1] || '', speaker: p[2] || '', chair: p[3] || '', reader: p[4] || '', cong: p[5] || '', conductor: p[6] || '' });
     });
     return out;
   }
+  function schOverseer(sc) { var m = /^巡回監督[｜|:：,，\s]+(.+)$/m.exec(String(sc && sc.text || '')); return m ? m[1].trim() : ''; }
+  function youbi(d) { return '日月火水木金土'[new Date(d + 'T00:00:00').getDay()]; }
   function findSch(id) { return (settings.schedules || []).filter(function (x) { return x.id === id; })[0] || null; }
   function dayDiff(a, b) { return Math.abs((new Date(a + 'T00:00:00') - new Date(b + 'T00:00:00')) / 86400000); }
   function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
-  var KTYPE = { '週中の集会': '週中の集会', '週末の集会': '週末の公開講演', '野外奉仕のための集まり': '野外奉仕のための集まり' };
+  var KTYPE = { '週中の集会': '週中の集会', '週末の集会': '週末の公開講演', '野外奉仕のための集まり': '野外奉仕のための集まり', '巡回訪問': '巡回訪問' };
   function isOrg() { return ORGK.indexOf($('sesKind').value) >= 0; }
   function isOther() { return !isOrg() && $('sesOwn').value === 'other'; }
   function mdText(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); return m ? (+m[2]) + '月' + (+m[3]) + 'の日'.slice(0, 0) + '日' : ''; }
@@ -1048,7 +1087,7 @@ var SCR = (function () {
       var seen = {}; list = list.filter(function (it) { if (seen[it.date]) return false; seen[it.date] = 1; it.title = '週日の集会'; it.speaker = ''; return true; });
     }
     list.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).forEach(function (it) {      // 日付の早い順
-      var o = el('option', null, it.date + '　' + it.title + (it.speaker && sc.type !== '野外奉仕のための集まり' ? '／' + it.speaker : '') + (it.chair && sc.type === '週中の集会' ? '／司会 ' + it.chair : '') + (sc.type === '野外奉仕のための集まり' ? '／司会 ' + it.chair : ''));
+      var o = el('option', null, sc.type === '巡回訪問' ? mdText(it.date) + '（' + youbi(it.date) + '）　' + it.title + (it.speaker ? '／' + it.speaker : '') : it.date + '　' + it.title + (it.speaker && sc.type !== '野外奉仕のための集まり' ? '／' + it.speaker : '') + (it.chair && sc.type === '週中の集会' ? '／司会 ' + it.chair : '') + (sc.type === '野外奉仕のための集まり' ? '／司会 ' + it.chair : ''));
       o.value = JSON.stringify(it); box.appendChild(o);
     });
     if (!box.options.length) { var no = el('option', null, '（今日以降の予定がありません）'); no.value = ''; box.appendChild(no); }
@@ -1057,33 +1096,44 @@ var SCR = (function () {
   function curSchIt() { try { return $('sesSchItem').value && !isOther() ? JSON.parse($('sesSchItem').value) : null; } catch (e) { return null; } }
   function autoNameText() {
     var kind = $('sesKind').value, it = curSchIt(), g = findProg($('sesProg').value), base = '';
-    var d = mdText(it ? it.date : todayStr());
+    var dd = it ? it.date : todayStr(), d = mdText(dd);
     if (kind === '週中の集会') base = d + ' 週日の集会';
     else if (kind === '週末の集会') base = d + ' 週末の集会';
     else if (kind === '野外奉仕のための集まり') base = d + ' 野外奉仕のための集まり';
-    else if (kind === '巡回訪問') base = d + ' 巡回訪問（　）';
+    else if (kind === '巡回訪問') base = d + '（' + youbi(dd) + '）' + ($('sesMeet').value || '');
+    else if (kind === '特別プログラム') base = d + ' 特別プログラム';
+    else if (kind === 'その他') base = d;
     else if (g) base = g.name;
+    else base = d + ' ' + kindLabel(kind);
     if (isOther() && $('sesCong').value.trim() && base) base = $('sesCong').value.trim() + '　' + base;
     return base;
   }
   function autoName() { if (!nameManual) $('sesName').value = autoNameText(); }
+  var seriesManual = false;
+  function hideProgKind(k) { return k === '野外奉仕のための集まり' || k === '特別プログラム' || k === 'その他'; }
   function updateSetup() {      // 種別・会衆の区分に合わせて、入力欄の出し分け
-    var kind = $('sesKind').value, fs = kind === '野外奉仕のための集まり', org = isOrg(), other = isOther();
-    $('lblProg').style.display = $('sesProg').style.display = fs ? 'none' : '';
+    var kind = $('sesKind').value, fs = kind === '野外奉仕のための集まり', org = isOrg(), other = isOther(), visit = kind === '巡回訪問';
+    $('lblProg').style.display = $('sesProg').style.display = hideProgKind(kind) ? 'none' : '';
     $('lblOwn').style.display = $('sesOwn').style.display = (org || fs) ? 'none' : '';      // 大会・巡回訪問などは自分の会衆ではなく、野外奉仕は自分のグループが基本
     $('otherBox').style.display = other ? '' : 'none';
-    $('seriesBox').style.display = kind === '巡回訪問' ? '' : 'none';
+    $('seriesBox').style.display = visit ? '' : 'none';
     $('chairBox').style.display = (fs && !curSchIt()) ? '' : 'none';
-    if (!other && !org && (KTYPE[kind] ? (settings.schedules || []).some(function (g) { return g.type === KTYPE[kind]; }) : false)) $('schBox').style.display = ''; else $('schBox').style.display = 'none';
-    if (kind === '巡回訪問' && !$('sesSeries').value) $('sesSeries').value = defaultSeries();
+    if (!other && (!org || visit) && (KTYPE[kind] ? (settings.schedules || []).some(function (g) { return g.type === KTYPE[kind]; }) : false)) $('schBox').style.display = ''; else $('schBox').style.display = 'none';
+    if (visit) syncVisit();
     autoName();
   }
-  function defaultSeries() {      // 直近（1週間以内）のまとまりがあればそれを、なければ今週の名前を提案
-    var t = todayStr(), best = '', bd = '';
-    index.forEach(function (x) { if (x.series && x.date <= t && x.date >= (function () { var d = new Date(); d.setDate(d.getDate() - 7); return ymd(d); })() && x.date > bd) { bd = x.date; best = x.series; } });
-    if (best) return best;
-    var d = new Date(), w = d.getDay(); d.setDate(d.getDate() - (w === 0 ? 6 : w - 1));
-    return '巡回訪問 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日の週';
+  function syncVisit() {      // 予定表を選んだら、会合の種類・巡回監督・まとまりの名前を自動で入れる
+    var it = curSchIt(), sc = findSch($('sesSch').value);
+    if (it && it.meet) { var ok = [].some.call($('sesMeet').options, function (o) { return o.value === it.meet; }); $('sesMeet').value = ok ? it.meet : 'その他'; }
+    if (sc && !$('sesOverseer').dataset.touched) { var ov = schOverseer(sc); if (ov) $('sesOverseer').value = ov; }
+    if (!seriesManual) $('sesSeries').value = seriesFor(it ? it.date : todayStr(), $('sesOverseer').value.trim());
+  }
+  function seriesFor(dateStr, ov) {      // 「11月16日の週 巡回訪問　〇〇兄弟」。同じ週の記録があれば、その名前に合わせる
+    var d = new Date(dateStr + 'T00:00:00'), w = d.getDay(); d.setDate(d.getDate() - (w === 0 ? 6 : w - 1));
+    var pre = (d.getMonth() + 1) + '月' + d.getDate() + '日の週 巡回訪問', found = '';
+    if (!ov) index.forEach(function (x) { if (!found && x.series && x.series.indexOf(pre) === 0) found = x.series; });
+    var hv = ov ? honor(ov) : ''; if (hv && !/(兄弟|姉妹)$/.test(hv)) hv += '兄弟';      // 巡回監督は兄弟
+    return found || (pre + (hv ? '　' + hv : ''));
   }
   function fillSeriesList() {
     var seen = {}, dl = $('dlSeries'); dl.innerHTML = '';
@@ -1102,7 +1152,12 @@ var SCR = (function () {
   $('sesProg').addEventListener('change', function () { refreshDatalists(); autoName(); });
   $('sesSchItem').addEventListener('change', updateSetup);
   $('sesSch').onchange = function () { fillSchItems(); updateSetup(); };
-  $('sesKind').onchange = function () { fillSchSelects(); };
+  $('sesKind').onchange = function () {      // 種別を変えたら、前のプログラム選択や名前を引きずらない
+    $('sesProg').value = ''; fillProgSelects(); nameManual = false; seriesManual = false; refreshDatalists(); fillSchSelects();
+  };
+  $('sesMeet').addEventListener('change', autoName);
+  $('sesOverseer').addEventListener('input', function () { $('sesOverseer').dataset.touched = '1'; syncVisit(); });
+  $('sesSeries').addEventListener('input', function () { seriesManual = true; });
   $('sesOwn').onchange = function () { fillSchSelects(); };
   $('sesCong').addEventListener('input', autoName);
   $('schSel').onchange = function () {
@@ -1437,10 +1492,12 @@ var SCR = (function () {
   $('pTabQ').onclick = function () { setPTab('q'); };
   function fillProgSelects() {
     [['sesProg', '（プログラムなし：タイトルを自分で入力）'], ['progSel', '（新規作成）']].forEach(function (p) {
-      var sel = $(p[0]), keep = sel.value;
+      var sel = $(p[0]), keep = sel.value, kd = p[0] === 'sesProg' ? $('sesKind').value : '';
       sel.innerHTML = '';
       var o = el('option', null, p[1]); o.value = ''; sel.appendChild(o);
-      settings.programs.forEach(function (g) { var x = el('option', null, g.name); x.value = g.id; sel.appendChild(x); });
+      settings.programs.forEach(function (g) {
+        if (kd) { var pk = progKindOf(g); if (pk && pk !== kd) return; }      // 選んだ種別のプログラムだけを出す
+        var x = el('option', null, g.name); x.value = g.id; sel.appendChild(x); });
       sel.value = keep; if (sel.selectedIndex < 0) sel.value = '';
     });
   }
@@ -1467,7 +1524,15 @@ var SCR = (function () {
     renderProgCongs(true);
     var g = findProg($('progSel').value);
     $('progName').value = g ? g.name : ''; $('progText').value = g ? g.text : ''; $('progMsg').textContent = '';
+    $('progKind').value = g ? progKindOf(g) : '';
   };
+  function progKindOf(g) {      // 種別の指定がない昔のプログラムは、ワークブック（週中）・塔（週末）だけ中身から判断
+    if (g.kind) return g.kind;
+    if (/\|塔\]/.test(g.text || '')) return '週末の集会';
+    if (/^#\[\d{4}-/m.test(g.text || '')) return '週中の集会';
+    return '';
+  }
+  function guessProgKind(name, r) { return /巡回大会/.test(name) ? '巡回大会' : /地区大会/.test(name) ? '地区大会' : (r && r.weekly ? (r.watchtower ? '週末の集会' : '週中の集会') : ''); }
   $('btnProgSave').onclick = function () {
     var name = $('progName').value.trim(), text = $('progText').value;
     if (!name || !text.trim()) { $('progMsg').textContent = '名前と項目を入力してください'; return; }
@@ -1475,6 +1540,7 @@ var SCR = (function () {
     if (g) { g.name = name; g.text = text; }
     else { g = { id: 'p' + Date.now(), name: name, text: text }; settings.programs.push(g); }
     g.congs = checkedCongs(); if (!g.congs.length) delete g.congs;
+    if ($('progKind').value) g.kind = $('progKind').value; else delete g.kind;
     fillProgSelects(); $('progSel').value = g.id;
     saveSettings($('progMsg'), '保存しました');
   };
@@ -1498,8 +1564,8 @@ var SCR = (function () {
         if (!window.initSqlJs) await loadScript(SQLJS + 'sql-wasm.js');
         var SQL = await window.initSqlJs({ locateFile: function (n) { return SQLJS + n; } });
         var r = await JW.parse(buf, SQL, DOMParser);
-        $('progSel').value = ''; $('progName').value = r.name; $('progText').value = r.text;
-        msg.textContent = '読み取りました' + (r.theme ? '（主題：' + r.theme + '）' : '') + '。内容を確認して「保存」を押してください。歌と音楽の行は除いています。';
+        $('progSel').value = ''; $('progName').value = r.name; $('progText').value = r.text; $('progKind').value = guessProgKind(r.name, r);
+        msg.textContent = '読み取りました' + (r.theme ? '（主題：' + r.theme + '）' : '') + '。内容を確認して「保存」を押してください。歌・音楽の行も含めています。';
       } else {
         msg.textContent = 'PDFをGeminiで読み取り中…（数十秒かかることがあります）';
         var items = await api('parseProgram', { pdf: b64(new Uint8Array(buf)) });
@@ -1509,7 +1575,7 @@ var SCR = (function () {
           if (it.sub) return '・' + t;
           return (it.time ? it.time + ' ' : '') + t;
         }).filter(Boolean);
-        $('progSel').value = ''; $('progName').value = f.name.replace(/\.pdf$/i, ''); $('progText').value = lines.join('\n');
+        $('progSel').value = ''; $('progName').value = f.name.replace(/\.pdf$/i, ''); $('progText').value = lines.join('\n'); $('progKind').value = guessProgKind(f.name, null);
         msg.textContent = '読み取りました。AIによる読み取りなので、内容を確認・修正して「保存」を押してください。';
       }
     } catch (e) {
@@ -1531,7 +1597,7 @@ var SCR = (function () {
   function talk() { return cur.talks[talkIdx]; }
   function touch() { dirty = true; lsSet('rm_cur', cur); }
   function showState() {
-    if (running) $('status').textContent = '録音中' + (pending ? '（文字起こし待ち ' + pending + '件）' : '');
+    if (running) $('status').textContent = '録音中' + (pending ? '（文字起こし中 ' + pending + '件）' : '') + (retryN ? '（通信待ち ' + retryN + '件：戻ったら自動で処理）' : '');
   }
   // 全文パネルへの記録
   function logAdd(type, ms, text) {
@@ -1607,7 +1673,7 @@ var SCR = (function () {
   }
   function showTalk() {       // 現在の講演を入力欄とメモ欄に表示する
     var t = talk();
-    $('tTitle').value = t.title || ''; $('tCong').value = t.cong || ''; $('tSpeaker').value = t.speaker || '';
+    $('tTitle').value = t.title || ''; $('tCong').value = t.cong || ''; $('tSpeaker').value = t.speaker || ''; markGuess();
     var box = $('memos'); box.innerHTML = '';
     var lines = String(t.note || '').split('\n').filter(Boolean);
     if (!lines.length) { box.appendChild(el('div', null, EMPTY_MSG)).id = 'memoEmpty'; return; }
@@ -1623,20 +1689,20 @@ var SCR = (function () {
     var ms = running ? nowMs() : 0;
     cur.talks.push(blankTalk(title, ms));
     talkIdx = cur.talks.length - 1;
-    showTalk(); logAdd('title', ms, title || '（新しい講演）'); touch();
+    showTalk(); logAdd('title', ms, title || '（新しい講演）'); touch(); usePending();
   }
   function goTalk(k) {        // 用意済みの講演（プログラムの項目）へ切り替える
     flushChunk();
     talkIdx = k;
     var t = talk(), ms = nowMs();
     if (t.startMs == null) t.startMs = ms;
-    showTalk(); logAdd('title', ms, t.title); touch();
+    showTalk(); logAdd('title', ms, t.title); touch(); usePending();
   }
   $('tTitle').oninput = function () { if (cur) { talk().title = $('tTitle').value; touch(); } };
-  $('tCong').oninput = function () { if (cur) { talk().cong = $('tCong').value; touch(); } };
+  $('tCong').oninput = function () { if (cur) { talk().cong = $('tCong').value; if (talk().gs) delete talk().gs.c; markGuess(); touch(); } };
   $('tCong').onchange = function () { noteNames($('tCong').value, ''); };
   $('tSpeaker').onchange = function () { noteNames('', $('tSpeaker').value); };
-  $('tSpeaker').oninput = function () { if (cur) { talk().speaker = $('tSpeaker').value; touch(); } };
+  $('tSpeaker').oninput = function () { if (cur) { talk().speaker = $('tSpeaker').value; if (talk().gs) delete talk().gs.s; markGuess(); touch(); } };
 
   function nextItem() { for (var i = itemPos + 1; i < items.length; i++) if (!items[i].head) return i; return -1; }
   function setNextLabel(a, b) { var n = $('btnNext'); n.textContent = a; var s = el('small', 'nexthint', b); s.style.cssText = 'display:block;font-size:12px;font-weight:400;opacity:.85;margin-top:2px'; n.appendChild(s); }
@@ -1681,6 +1747,138 @@ var SCR = (function () {
     }
     return new Uint8Array(dv.buffer);
   }
+  // ---------- 端末内の保管庫（通信が切れたときの再処理・音声の途中保存） ----------
+  var idbP = null, memStore = { chunks: {}, audios: {}, parts: {} };
+  function idb() {
+    if (idbP) return idbP;
+    idbP = new Promise(function (res, rej) {
+      try {
+        var r = window.indexedDB.open('rm8', 1);
+        r.onupgradeneeded = function () { var d = r.result; ['chunks', 'audios', 'parts'].forEach(function (n) { if (!d.objectStoreNames.contains(n)) d.createObjectStore(n, { keyPath: 'key' }); }); };
+        r.onsuccess = function () { res(r.result); }; r.onerror = function () { rej(r.error); };
+      } catch (er) { rej(er); }
+    });
+    return idbP;
+  }
+  function idbPut(store, o) {
+    return idb().then(function (d) { return new Promise(function (res, rej) { var t = d.transaction(store, 'readwrite'); t.objectStore(store).put(o); t.oncomplete = res; t.onerror = t.onabort = function () { rej(t.error); }; }); })
+      .catch(function () { memStore[store][o.key] = o; });
+  }
+  function idbDel(store, key) {
+    delete memStore[store][key];
+    return idb().then(function (d) { return new Promise(function (res) { var t = d.transaction(store, 'readwrite'); t.objectStore(store).delete(key); t.oncomplete = res; t.onerror = t.onabort = res; }); }).catch(function () {});
+  }
+  function idbAll(store) {
+    var mem = Object.keys(memStore[store]).map(function (k) { return memStore[store][k]; });
+    return idb().then(function (d) { return new Promise(function (res) { var out = [], r = d.transaction(store, 'readonly').objectStore(store).openCursor(); r.onsuccess = function () { var c = r.result; if (c) { out.push(c.value); c.continue(); } else res(out.concat(mem)); }; r.onerror = function () { res(mem); }; }); }).catch(function () { return mem; });
+  }
+  var retrying = false, retryN = 0;
+  async function applyRetry(it, text, cache) {      // 再処理できた文字起こしを、記録の「待ち」の行と入れ替える
+    var s = (cur && cur.id === it.sid) ? cur : (cache[it.sid] || (cache[it.sid] = await api('loadSession', { id: it.sid }, 1)));
+    var t = (s.talks || []).filter(function (x) { return x.id === it.talkId; })[0];
+    if (!t) return;
+    var ph = '[' + fmt(it.ms) + '] （文字起こし待ち）\n', now = text ? '[' + fmt(it.ms) + '] ' + text + '\n' : '[' + fmt(it.ms) + '] （文字起こし失敗）\n';
+    if ((t.transcript || '').indexOf(ph) >= 0) t.transcript = t.transcript.replace(ph, now); else if (text) t.transcript = (t.transcript || '') + now;
+    if (s === cur) { touch(); logAdd(text ? 'text' : 'err', it.ms, text || '文字起こしに失敗しました（再処理を断念）'); } else cache['_d' + it.sid] = 1;
+  }
+  async function retryPending() {
+    if (retrying) return; retrying = true;
+    var cache = {}, did = 0;
+    try {
+      var items = (await idbAll('chunks')).sort(function (a, b) { return a.sid < b.sid ? -1 : a.sid > b.sid ? 1 : a.ms - b.ms; });
+      retryN = items.length; showState();
+      for (var i = 0; i < items.length; i++) {
+        var it = items[i], text;
+        try { text = await api('transcribe', { audio: b64(it.wav instanceof Uint8Array ? it.wav : new Uint8Array(it.wav)), mime: 'audio/wav', terms: terms, title: it.title || '', prev: '' }, 0); }
+        catch (er) {
+          it.tries = (it.tries || 0) + 1;
+          if (er.fatal && it.tries >= 5) { await applyRetry(it, '', cache); await idbDel('chunks', it.key); did++; }
+          else await idbPut('chunks', it);
+          if (!er.fatal) break;       // 通信そのものが切れている：次の機会まで待つ
+          continue;
+        }
+        await applyRetry(it, applyDict(String(text || '').trim()), cache); await idbDel('chunks', it.key); did++;
+      }
+      var au = await idbAll('audios');
+      for (var k = 0; k < au.length; k++) {
+        try { await api('saveAudio', { sid: au[k].sid, name: au[k].name, mime: au[k].mime, audio: b64(new Uint8Array(await au[k].blob.arrayBuffer())) }, 0); await idbDel('audios', au[k].key); did++; }
+        catch (er) { break; }
+      }
+      for (var sid in cache) if (sid.charAt(0) !== '_' && cache['_d' + sid]) { try { await api('saveSession', { session: cache[sid] }, 1); } catch (er) {} }
+      retryN = (await idbAll('chunks')).length + (await idbAll('audios')).length;
+      if (did && !running) setStatus('通信が戻ったので、保留していた文字起こし・音声の保存を ' + did + ' 件処理しました');
+    } catch (er) {} finally { retrying = false; showState(); }
+  }
+  async function recoverParts() {      // 前回、途中で終わった録音（充電切れなど）の音声を、端末内の途中保存から救い出す
+    var parts = await idbAll('parts'); if (!parts.length) return;
+    var g = {}; parts.forEach(function (p) { (g[p.sid + '|' + p.no] = g[p.sid + '|' + p.no] || []).push(p); });
+    for (var k in g) {
+      var ps = g[k].sort(function (a, b) { return a.seq - b.seq; }), type = ps[0].type || 'audio/mp4';
+      var blob = new Blob(ps.map(function (p) { return p.blob; }), { type: type });
+      var name = ps[0].sid + '_' + pad(ps[0].no) + (type.indexOf('webm') >= 0 ? '.webm' : '.m4a');
+      try { await api('saveAudio', { sid: ps[0].sid, name: name, mime: type.split(';')[0], audio: b64(new Uint8Array(await blob.arrayBuffer())) }, 1); setStatus('前回の途中までの録音音声を、Driveに保存しました'); }
+      catch (er) { await idbPut('audios', { key: name, sid: ps[0].sid, name: name, mime: type.split(';')[0], blob: blob }); }
+      for (var i = 0; i < ps.length; i++) await idbDel('parts', ps[i].key);
+    }
+  }
+  window.addEventListener('online', function () { retryPending(); });
+  setInterval(function () { if (navigator.onLine !== false) retryPending(); }, 30000);
+
+  // ---------- 紹介の言葉（「東京本郷会衆の〇〇兄弟です」）から、会衆名と講演者の名前を推測 ----------
+  function normC(s) { return String(s || '').replace(/[\s　]/g, '').replace(/会衆$/, ''); }
+  function dice(a, b) {
+    a = nrm(a); b = nrm(b); if (!a || !b) return 0; if (a === b) return 1; if (a.length < 2 || b.length < 2) return 0;
+    var A = {}, m = 0, i, g;
+    for (i = 0; i < a.length - 1; i++) { g = a.substr(i, 2); A[g] = (A[g] || 0) + 1; }
+    for (i = 0; i < b.length - 1; i++) { g = b.substr(i, 2); if (A[g] > 0) { A[g]--; m++; } }
+    return 2 * m / ((a.length - 1) + (b.length - 1));
+  }
+  function bestOf(name, list, th, norm) {
+    var best = null, bs = 0; list.forEach(function (n) { var s = dice(norm(name), norm(n)); if (s > bs) { bs = s; best = n; } });
+    return bs >= th ? best : null;
+  }
+  var NAME_RE = '([一-龥々ァ-ヶー]{1,5}[\\s　]?[一-龥々ァ-ヶー]{1,6})(兄弟|姉妹)';
+  function introParse(text) {
+    text = String(text || '');
+    var congs = settings.congs || [], pg = findProg($('sesProg') ? $('sesProg').value : ''), cl = pg && pg.congs && pg.congs.length ? pg.congs : congs;
+    var cong = '', rest = '', m;
+    for (var i = 0; i < cl.length && !cong; i++) {      // 登録済みの会衆名が話の中に出てくるか
+      var c = normC(cl[i]); if (c.length < 2) continue;
+      var ix = text.replace(/[\s　]/g, '').indexOf(c);
+      if (ix >= 0) { cong = cl[i]; rest = text.replace(/[\s　]/g, '').slice(ix + c.length); }
+    }
+    var nm = null;
+    if (cong) { m = new RegExp('^(?:会衆)?(?:の|から(?:来られた|おいでの|お越しの)?|所属の)?[、,]*' + NAME_RE).exec(rest); if (m) nm = m; }
+    if (!nm) {
+      m = new RegExp('([一-龥々ァ-ヶー0-9]{2,12})会衆(?:の|から(?:来られた|おいでの|お越しの)?|所属の)?[、,\\s]*' + NAME_RE).exec(text);
+      if (!m) return null;
+      var raw = m[1], hit = bestOf(raw, cl, 0.6, normC);
+      cong = hit || raw; nm = [m[0], m[2], m[3]];
+    }
+    var nameRaw = nm[1].replace(/[\s　]+/g, ' ').trim(), sex = nm[2], plain = plainMembers(), hit2 = bestOf(nameRaw, plain, 0.6, nrm);
+    var name = hit2 ? honor1(hit2) : nameRaw + sex;
+    if (hit2 && !/(兄弟|姉妹)$/.test(name)) name += sex;
+    return { cong: cong, name: name };
+  }
+  var pendingIntro = null;
+  function applyIntro(i, r) {
+    var t = cur.talks[i]; if (!t) return; var gs = t.gs || {};
+    if (!t.cong && r.cong) { t.cong = r.cong; gs.c = 1; }
+    if (!t.speaker && r.name) { t.speaker = r.name; gs.s = 1; }
+    t.gs = gs; if (i === talkIdx) { $('tCong').value = t.cong || ''; $('tSpeaker').value = t.speaker || ''; markGuess(); }
+    touch();
+  }
+  function introCheck(text, ti) {
+    if (!cur) return; var r = introParse(text); if (!r) return;
+    var t = cur.talks[ti]; if (!t) return;
+    if (!String(t.transcript || '').trim() && ti === talkIdx && (!t.cong || !t.speaker)) applyIntro(ti, r);      // 話の冒頭で紹介が入った
+    else pendingIntro = { r: r, at: Date.now() };      // 紹介は前の話の終わりに入るのが普通なので、次の話に当てはめる
+  }
+  function usePending() {
+    if (pendingIntro && Date.now() - pendingIntro.at < 240000 && cur && talk() && (!talk().cong || !talk().speaker)) applyIntro(talkIdx, pendingIntro.r);
+    pendingIntro = null;
+  }
+  function markGuess() { var g = (cur && talk() && talk().gs) || {}; $('tCong').classList.toggle('guess', !!g.c); $('tSpeaker').classList.toggle('guess', !!g.s); $('tCong').title = g.c ? '推測：紹介の言葉から入れました。違っていたら直してください' : ''; $('tSpeaker').title = g.s ? '推測：紹介の言葉から入れました。違っていたら直してください' : ''; }
   function flushChunk() {
     if (!bufLen || !actx) return;
     var meta = { ms: chunkStartMs, talk: chunkTalk }, loud = chunkMax;
@@ -1696,6 +1894,7 @@ var SCR = (function () {
       if (!text) return;
       lastText = text;
       var t = cur.talks[meta.talk];
+      try { introCheck(text, meta.talk); } catch (er) {}
       t.transcript += '[' + fmt(meta.ms) + '] ' + text + '\n';
       logAdd('text', meta.ms, text); touch();
       if (!AUTO_SCRIPTURE) return;
@@ -1706,8 +1905,10 @@ var SCR = (function () {
         return chain.then(function () { return verseBody(p); }).then(function (body) { memoAdd(meta.talk, meta.ms, '聖句', p.ref, body); });
       }, Promise.resolve());
     }).catch(function (e) {
-      cur.talks[meta.talk].transcript += '[' + fmt(meta.ms) + '] （文字起こし失敗）\n';
-      logAdd('err', meta.ms, '文字起こしに失敗しました: ' + e.message); touch();
+      var tt = cur.talks[meta.talk];
+      tt.transcript += '[' + fmt(meta.ms) + '] （文字起こし待ち）\n';      // 通信が戻ったら自動でやり直す（端末内に音声を保管）
+      idbPut('chunks', { key: cur.id + '_' + meta.ms + '_' + Date.now(), sid: cur.id, talkId: tt.id, ms: meta.ms, title: tt.title || '', wav: wav, tries: 0 }).then(function () { retryN++; showState(); });
+      logAdd('err', meta.ms, '文字起こしを保留しました（通信が戻ったら自動でやり直します）: ' + e.message); touch();
     }).then(function () { pending--; showState(); });
   }
   function onAudio(ev) {
@@ -1732,16 +1933,26 @@ var SCR = (function () {
     var mime = pickMime(), opt = { audioBitsPerSecond: 48000 }, chunks = [], no = ++segNo, sid = cur.id;
     if (mime) opt.mimeType = mime;
     var rec = new MediaRecorder(stream, opt);
-    rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
+    var seq = 0, partKeys = [];
+    rec.ondataavailable = function (e) {
+      if (!e.data || !e.data.size) return;
+      chunks.push(e.data);
+      var key = sid + '_' + no + '_' + pad(Math.floor(seq / 100)) + pad(seq % 100); partKeys.push(key);
+      idbPut('parts', { key: key, sid: sid, no: no, seq: seq++, type: rec.mimeType || mime || 'audio/mp4', blob: e.data });      // 10秒ごとに端末へ途中保存（充電切れでも残る）
+    };
     rec.onstop = async function () {
       var type = rec.mimeType || mime || 'audio/mp4';
       var blob = new Blob(chunks, { type: type });
       if (!blob.size) return;
       var name = sid + '_' + pad(no) + (type.indexOf('webm') >= 0 ? '.webm' : '.m4a');
       try { await api('saveAudio', { sid: sid, name: name, mime: type.split(';')[0], audio: b64(new Uint8Array(await blob.arrayBuffer())) }, 2); }
-      catch (e) { logAdd('err', 0, '音声の保存に失敗: ' + name + '（' + e.message + '）'); }
+      catch (e) {
+        await idbPut('audios', { key: name, sid: sid, name: name, mime: type.split(';')[0], blob: blob }); retryN++; showState();      // 通信が戻ったら保存し直す
+        logAdd('err', 0, '音声の保存を保留しました（通信が戻ったら自動で保存します）: ' + name);
+      }
+      for (var i = 0; i < partKeys.length; i++) idbDel('parts', partKeys[i]);
     };
-    rec.start(); recorder = rec;
+    rec.start(10000); recorder = rec;
   }
 
   function saveNow() {
@@ -1770,8 +1981,8 @@ var SCR = (function () {
     var chair = fs ? (schIt ? schIt.chair : $('sesChair').value) : '';
     cur = { id: id, name: $('sesName').value.trim() || (schIt ? sch.name + ' ' + schIt.date : '録音メモ'), date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), kind: kindV, talks: [] };
     if (other) cur.cong = congName;
-    if (kindV === '巡回訪問' && $('sesSeries').value.trim()) cur.series = $('sesSeries').value.trim();
-    var g = fs ? null : findProg($('sesProg').value), weekday = !!(sch && schIt && sch.type === '週中の集会'), progText = g ? g.text : '', dayIts = [];
+    if (kindV === '巡回訪問') { if ($('sesSeries').value.trim()) cur.series = $('sesSeries').value.trim(); cur.meeting = $('sesMeet').value; if ($('sesOverseer').value.trim()) cur.overseer = $('sesOverseer').value.trim(); }
+    var g = (fs || hideProgKind(kindV)) ? null : findProg($('sesProg').value), weekday = !!(sch && schIt && sch.type === '週中の集会'), progText = g ? g.text : '', dayIts = [];
     var wtProg = null;
     if (g && /\|塔\]/.test(g.text) && kindV === '週末の集会') { wtProg = g; g = null; progText = ''; }
     var weekend = !!(sch && schIt && sch.type === '週末の公開講演' && !g && schIt.speaker && !/巡回訪問|巡回大会|特別プログラム/.test(schIt.title));
@@ -1836,7 +2047,7 @@ var SCR = (function () {
       if (other && congName) cur.talks.forEach(function (t) { t.cong = congName; });
       showTalk(); logAdd('title', 0, talk().title); touch();
     } else {
-      newTalk(fs ? '野外奉仕のための集まり' : (schIt ? schIt.title : ''));
+      newTalk(fs ? '野外奉仕のための集まり' : (schIt ? schIt.title : (kindV === '巡回訪問' ? $('sesMeet').value : '')));
       var t0 = talk();
       if (fs) t0.speaker = honor(chair);
       else if (schIt) {      // 予定表から、タイトル・講演者（公開講演なら自分の会衆名）を最初から入れる
@@ -1947,6 +2158,12 @@ var SCR = (function () {
     tStop = setTimeout(function () { stopMicTest(); $('micMsg').textContent = ''; }, 60000);
   };
   $('btnStart').onclick = function () { stopMicTest(); start(); };
+  function updateBand() { var t = talk && cur ? talk() : null; $('headBand').textContent = t ? [t.title, t.cong, t.speaker].filter(Boolean).join('　') : ''; }
+  $('memoIn').addEventListener('focus', function () { if (running) { updateBand(); document.body.classList.add('kb'); } });
+  $('memoIn').addEventListener('blur', function () { setTimeout(function () { if (document.activeElement !== $('memoIn')) document.body.classList.remove('kb'); }, 150); });
+  function applyFz(v) { document.body.classList.remove('fz-s', 'fz-l'); if (v === 's' || v === 'l') document.body.classList.add('fz-' + v); }
+  $('fzSel').value = lsGet('rm_fz', 'm'); applyFz($('fzSel').value);
+  $('fzSel').onchange = function () { lsSet('rm_fz', $('fzSel').value); applyFz($('fzSel').value); };
   $('btnStop').onclick = function () { if (window.confirm('録音を停止しますか？')) stop(); };
   $('trStrip').onclick = function () { $('logPane').classList.toggle('on'); };
   $('logClose').onclick = function () { $('logPane').classList.remove('on'); };
@@ -2447,9 +2664,10 @@ var SCR = (function () {
       var open = openG[sid] !== undefined ? openG[sid] : (!!q || !!fTag || g[0].date === today);   // 基本は折りたたみ。今日の行事だけ開く
       var h = el('button', 'grp'); h.style.borderLeftColor = kindColor(kindOf(g[0]));
       h.setAttribute('aria-expanded', open ? 'true' : 'false');
-      var ser = !!g[0].series, ds = g.map(function (x) { return x.date; }).sort(), gt = el('span', 'gt', (ser ? (ds[0] === ds[ds.length - 1] ? ds[0] : ds[0] + '〜' + ds[ds.length - 1]) + '　' + g[0].series : g[0].date + '　' + g[0].sname));
+      var ser = !!g[0].series, ds = g.map(function (x) { return x.date; }).sort(), gt = el('span', 'gt', ser ? g[0].series : g[0].date + '　' + g[0].sname);
+      if (ser) g.sort(function (a, b) { return a.sid < b.sid ? -1 : a.sid > b.sid ? 1 : 0; });
       var n = todo(sid);
-      gt.appendChild(el('small', null, kindLabel(kindOf(g[0])) + (ser ? '　' + Object.keys(g.reduce(function (m, x) { m[x.sid] = 1; return m; }, {})).length + '回の記録' : '') + '　' + g.length + '件' + (n ? '　未整理 ' + n + '件' : '　すべて整理済')));
+      gt.appendChild(el('small', null, kindLabel(kindOf(g[0])) + (ser ? '　' + (ds[0] === ds[ds.length - 1] ? ds[0] : ds[0] + '〜' + ds[ds.length - 1]) + '　' + Object.keys(g.reduce(function (m, x) { m[x.sid] = 1; return m; }, {})).length + '回の記録' : '') + '　' + g.length + '件' + (n ? '　未整理 ' + n + '件' : '　すべて整理済')));
       h.appendChild(gt); h.appendChild(el('span', 'arrow', open ? '▾' : '▸'));
       h.onclick = function () { openG[sid] = !open; renderList(); };
       var hw = el('div', 'swp'); hw.appendChild(h); addSwipe(hw, (ser ? 'このまとまり（' + g[0].series + '）のメモ ' : 'この行事のメモ ') + g.length + '件をすべて削除しますか？（Googleドライブのごみ箱に入ります）', function () { delGroup(g); });
@@ -2471,7 +2689,6 @@ var SCR = (function () {
         bt.appendChild(document.createTextNode(child ? x.title.slice(x.title.indexOf('／') + 1) : x.title));
         b.appendChild(bt);
         var who = [x.cong, x.speaker].filter(Boolean).join('　'), ck = clockOf(x);
-        if (ser) who = x.sname + (who ? '　' + who : '');
         if (ck) who = ck + '〜' + (who ? '　' + who : '');
         if (who) b.appendChild(el('small', null, who));
         b.onclick = function () {
@@ -2494,8 +2711,10 @@ var SCR = (function () {
         }
         return wrap;
       }
+      var lastSid = '';
       g.forEach(function (x) {
         if (isKid[x.tid]) return;
+        if (ser && x.sid !== lastSid) { lastSid = x.sid; body.appendChild(el('div', 'sessdiv', x.sname)); }      // 巡回訪問：日付・曜日・会合ごとの区切り
         var w = row(x, false);
         if (w) body.appendChild(w);
       });
@@ -2612,7 +2831,7 @@ var SCR = (function () {
   }
   function fillEditor() {
     var t = dTalk;
-    $('dTitle').value = t.title || ''; $('dCong').value = t.cong || ''; $('dSpeaker').value = t.speaker || '';
+    $('dTitle').value = t.title || ''; $('dCong').value = t.cong || ''; $('dSpeaker').value = t.speaker || ''; markDGuess();
     $('dKind').value = dSes.kind || 'その他'; $('dSeries').value = dSes.series || ''; fillSeriesList();
     $('dChair').value = (dSes.roles && dSes.roles.chair) || ''; $('dReader').value = (dSes.roles && dSes.roles.reader) || '';
     $('dTags').value = (t.tags || []).join('、'); $('dStatus').value = t.status || '未整理';
@@ -2652,6 +2871,9 @@ var SCR = (function () {
       $('dMsg').textContent = '';
     }).catch(function (e) { $('dMsg').textContent = '読み込みに失敗: ' + e.message; });
   }
+  function markDGuess() { var g = (dTalk && dTalk.gs) || {}; $('dCong').classList.toggle('guess', !!g.c); $('dSpeaker').classList.toggle('guess', !!g.s); }
+  $('dCong').addEventListener('input', function () { if (dTalk && dTalk.gs) { delete dTalk.gs.c; markDGuess(); } });
+  $('dSpeaker').addEventListener('input', function () { if (dTalk && dTalk.gs) { delete dTalk.gs.s; markDGuess(); } });
   function readDetail() {
     dTalk.title = $('dTitle').value.trim(); dTalk.cong = $('dCong').value.trim(); dTalk.speaker = $('dSpeaker').value.trim();
     dSes.kind = $('dKind').value; if ($('dSeries').value.trim()) dSes.series = $('dSeries').value.trim(); else delete dSes.series;
@@ -3115,6 +3337,7 @@ var SCR = (function () {
       api('bibleInfo', null, 1).then(function (r) { bibleBooks = (r && r.books) || 0; showBibleState(); }).catch(function () { showBibleState(); });
       setStatus('「開始」を押すと録音と文字起こしを始めます');
       if (wide()) loadIndex();
+      recoverParts().then(function () { return retryPending(); });
       // 前回、Driveに保存しきれなかった分があれば保存する
       var left = lsGet('rm_cur', null);
       if (left && left.id && !running) {
