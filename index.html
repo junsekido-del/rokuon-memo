@@ -240,9 +240,9 @@ nav button span{white-space:nowrap}
 .trow.kid .talk b{font-size:16px !important}
 .trow,.swp{position:relative;overflow:hidden}
 .swdel{position:absolute;right:0;top:0;bottom:0;width:96px;border:0 !important;border-radius:0 !important;background:#E5484D;color:#fff;font-size:18px;font-weight:700;visibility:hidden}
-.sw>.swdel{visibility:visible}
+.swo>.swdel{visibility:visible}
 .trow>*:not(.swdel),.swp>*:not(.swdel){transition:transform .15s}
-.sw>*:not(.swdel){transform:translateX(-96px)}
+.swo>*:not(.swdel){transform:translateX(-96px)}
 .bib{font-size:20px !important;font-weight:700;padding:14px 16px;border-radius:12px;margin:8px 0}
 .bib.ok{background:#12382a;color:#6FD38B;border:2px solid #2f9e6a}.bib.no{background:#3a2a10;color:#F0A35B;border:2px solid #b9791f}
 .krow{display:flex;gap:6px;align-items:center}.krow .kr{flex:1}.krow button.mv{min-height:44px;width:44px;padding:0;border-radius:10px}
@@ -271,6 +271,12 @@ body.kb #trLast{-webkit-line-clamp:12}
 body.kb #memos{flex:0 0 22%}
 .sessdiv{margin:14px 0 6px;padding:4px 10px;font-size:14px;font-weight:700;color:var(--sub);border-left:4px solid var(--edge)}
 .guess{outline:2px dashed #E0A93B;outline-offset:-2px}
+input,textarea{-webkit-text-security:none}
+#cfToken{-webkit-text-security:disc}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:99999;background:#2f9e6a;color:#fff;font-size:20px;font-weight:700;padding:16px 26px;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.5);max-width:84vw;display:none;text-align:center;line-height:1.5}
+#toast.on{display:block}
+#dFmtBox{padding:10px 14px;border-bottom:1px solid var(--edge)}#dFmtBox label{font-size:14px;color:var(--sub);display:block;margin-bottom:4px}
+#rTsBtn{min-height:36px;font-size:15px;padding:2px 14px;border-radius:18px;margin:6px 0}
 /* ---- v10.5 ---- */
 .backconf{margin-bottom:10px;min-height:46px;font-size:18px;border-radius:23px;padding:0 20px}
 .bigbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
@@ -343,6 +349,10 @@ body.kb #memos{flex:0 0 22%}
       <input type="text" id="sesSeries" list="dlSeries">
       <datalist id="dlSeries"></datalist>
     </div>
+    <div id="partBox" style="display:none">
+      <label class="f" for="sesPart">録音する部（大会は午前と午後で録音を分け、メモ一覧では一つにまとまります）</label>
+      <select id="sesPart"></select>
+    </div>
     <label class="f" for="sesName">行事名</label>
     <input type="text" id="sesName" placeholder="種別・予定表・プログラムを選ぶと自動で入ります">
     <label class="f" for="sesProg" id="lblProg">プログラム（選ぶと項目一覧つきの画面になります）</label>
@@ -360,6 +370,7 @@ body.kb #memos{flex:0 0 22%}
       <label><input type="checkbox" id="chkAudio" checked> 音声も保存する</label>
     </div>
     <div class="row" style="margin-top:6px"><button id="btnMicTest">🎤 マイクのテスト</button><div id="vuTestBox" class="vu"><i id="vuTest"></i></div><span id="micMsg" class="hint"></span></div>
+    <label class="chk" style="padding:6px 0"><input type="checkbox" id="sesDiar"> 話者を分ける（対談・シンポジウムなど、複数の人が話す録音向け）</label>
     <button id="btnStart" class="primary" style="min-height:60px;font-size:21px;padding:0 40px">開始</button>
     <div id="setupMsg" class="hint" style="margin-top:10px">準備中…</div>
   </div>
@@ -414,7 +425,7 @@ body.kb #memos{flex:0 0 22%}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.9</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.12</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -545,7 +556,7 @@ body.kb #memos{flex:0 0 22%}
     <label class="f" for="cfUrl">GASのウェブアプリURL（https://script.google.com/macros/s/…/exec）</label>
     <input type="text" id="cfUrl" autocapitalize="off" autocorrect="off">
     <label class="f" for="cfToken">合言葉（GASの APP_TOKEN と同じもの）</label>
-    <input type="password" id="cfToken">
+    <input type="text" id="cfToken" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" style="-webkit-text-security:disc">
     <div class="row" style="margin-top:12px"><button id="btnCfSave" class="primary">保存して接続テスト</button></div>
     <div id="cfMsg" class="hint"></div>
     <div class="hint">この2つはこの端末のブラウザ内にだけ保存されます。端末ごとに一度入力してください。</div>
@@ -579,6 +590,7 @@ body.kb #memos{flex:0 0 22%}
     <button id="dMore" aria-label="その他">⋯</button>
   </div>
   <div id="dPop">
+    <div id="dFmtBox"><label for="dFmt">コピー・書き出しの内容</label><select id="dFmt"><option value="body">本文のみ（メモ・聖句＋文字起こし）</option><option value="spk">話者分離つき</option><option value="sum">要約つき（要約＋本文）</option></select></div>
     <button id="dShare">共有…</button>
     <button id="dCopy">テキストをコピー</button>
     <button id="dExport">この講演を書き出し</button>
@@ -596,7 +608,7 @@ body.kb #memos{flex:0 0 22%}
     <div id="rSumBox" class="rsec"><h3>要約</h3><div id="rSummary" class="rtext"></div></div>
     <div id="rNoteBox" class="rsec"><h3>メモ・聖句</h3><div id="rNote" class="notebody"></div></div>
     <div id="rCheckBox" class="rsec" style="display:none"><h3>あとで確認の前後</h3><div id="rCheck"></div></div>
-    <details id="rTransBox" class="rsec"><summary id="rTransSum">文字起こし</summary><div id="rTrans" class="rtext"></div></details>
+    <details id="rTransBox" class="rsec"><summary id="rTransSum">文字起こし</summary><button id="rTsBtn" type="button">時刻を表示する</button><div id="rTrans" class="rtext"></div></details>
   </div>
 
   <!-- 編集 -->
@@ -1094,7 +1106,37 @@ var SCR = (function () {
   }
   var nameManual = false;
   function curSchIt() { try { return $('sesSchItem').value && !isOther() ? JSON.parse($('sesSchItem').value) : null; } catch (e) { return null; } }
-  function autoNameText() {
+  function progHeads(g) {      // プログラムの「# 午前」「# 午後」などの見出し
+    var out = [], day = ''; String((g && g.text) || '').split('\n').forEach(function (l) {
+      var m = /^#(?!\[)\s*(.+)$/.exec(l.trim()); if (!m) return; var h = m[1].trim();
+      if (/^\d+日目$/.test(h)) { day = h; return; }      // 地区大会：「1日目」の下の「午前」「午後」は「1日目 午前」にする
+      out.push(day ? day + ' ' + h : h);
+    });
+    return out;
+  }
+  function isConv() { return ['巡回大会', '地区大会'].indexOf($('sesKind').value) >= 0; }
+  function partNow() { return $('partBox').style.display !== 'none' ? $('sesPart').value : ''; }
+  function fillParts() {
+    var g = isConv() ? findProg($('sesProg').value) : null, hs = g ? progHeads(g) : [], sel = $('sesPart'), keep = sel.value;
+    $('partBox').style.display = hs.length > 1 ? '' : 'none';
+    if (hs.length < 2) return;
+    sel.innerHTML = ''; hs.forEach(function (h) { var o = el('option', null, h); o.value = h; sel.appendChild(o); });
+    var done = {}; index.forEach(function (x) { if (x.series === convSeries()) done[x.sname] = 1; });
+    var nx = hs.filter(function (h) { return !done[baseName() + ' ' + h]; })[0];      // まだ録音していない最初の部
+    if (hs.indexOf(keep) >= 0) sel.value = keep; else if (hs.some(function (h) { return /日目/.test(h); })) sel.value = nx || hs[0]; else sel.value = new Date().getHours() < 13 ? hs[0] : hs[hs.length - 1];
+  }
+  function sliceHead(text, head) {      // 選んだ部の項目だけ残す（質問の行は残す）
+    var out = [], on = false, day = '';
+    String(text || '').split('\n').forEach(function (l) {
+      var t = l.trim(), m = /^#(?!\[)\s*(.+)$/.exec(t);
+      if (m) { var h = m[1].trim(); if (/^\d+日目$/.test(h)) { day = h; on = false; return; } on = (day ? day + ' ' + h : h) === head; if (on) out.push('# ' + head); return; }
+      if (on || /^[?？]/.test(t)) out.push(l);
+    });
+    return out.join('\n');
+  }
+  function convSeries() { var g = findProg($('sesProg').value), multi = progHeads(g).some(function (h) { return /日目/.test(h); }); return (multi ? todayStr().slice(0, 4) + '年' : todayStr()) + ' ' + kindLabel($('sesKind').value) + (g ? '（' + tidyProgName(g.name, g.text) + '）' : ''); }
+  function baseName() { return autoNameText(true); }
+  function autoNameText(noPart) {
     var kind = $('sesKind').value, it = curSchIt(), g = findProg($('sesProg').value), base = '';
     var dd = it ? it.date : todayStr(), d = mdText(dd);
     if (kind === '週中の集会') base = d + ' 週日の集会';
@@ -1105,6 +1147,7 @@ var SCR = (function () {
     else if (kind === 'その他') base = d;
     else if (g) base = g.name;
     else base = d + ' ' + kindLabel(kind);
+    if (!noPart && partNow()) base += ' ' + partNow();
     if (isOther() && $('sesCong').value.trim() && base) base = $('sesCong').value.trim() + '　' + base;
     return base;
   }
@@ -1120,6 +1163,7 @@ var SCR = (function () {
     $('chairBox').style.display = (fs && !curSchIt()) ? '' : 'none';
     if (!other && (!org || visit) && (KTYPE[kind] ? (settings.schedules || []).some(function (g) { return g.type === KTYPE[kind]; }) : false)) $('schBox').style.display = ''; else $('schBox').style.display = 'none';
     if (visit) syncVisit();
+    fillParts();
     autoName();
   }
   function syncVisit() {      // 予定表を選んだら、会合の種類・巡回監督・まとまりの名前を自動で入れる
@@ -1149,7 +1193,8 @@ var SCR = (function () {
     sel.value = keep; if (sel.selectedIndex < 0) sel.value = '';
   }
   $('sesName').addEventListener('input', function () { nameManual = !!$('sesName').value.trim(); });
-  $('sesProg').addEventListener('change', function () { refreshDatalists(); autoName(); });
+  $('sesProg').addEventListener('change', function () { refreshDatalists(); fillParts(); autoName(); });
+  $('sesPart').addEventListener('change', function () { autoName(); });
   $('sesSchItem').addEventListener('change', updateSetup);
   $('sesSch').onchange = function () { fillSchItems(); updateSetup(); };
   $('sesKind').onchange = function () {      // 種別を変えたら、前のプログラム選択や名前を引きずらない
@@ -1503,6 +1548,8 @@ var SCR = (function () {
     }
     return n || String(name || '');
   }
+  // iPadが「パスワードを使用」を出さないよう、入力欄の自動入力を止める
+  Array.prototype.forEach.call(document.querySelectorAll('input[type=text],input[type=search],textarea'), function (i) { i.setAttribute('autocomplete', 'off'); i.setAttribute('data-lpignore', 'true'); i.setAttribute('data-1p-ignore', ''); });
   function fillProgSelects() {
     [['sesProg', '（プログラムなし：タイトルを自分で入力）'], ['progSel', '（新規作成）']].forEach(function (p) {
       var sel = $(p[0]), keep = sel.value, kd = p[0] === 'sesProg' ? $('sesKind').value : '';
@@ -1802,7 +1849,7 @@ var SCR = (function () {
       retryN = items.length; showState();
       for (var i = 0; i < items.length; i++) {
         var it = items[i], text;
-        try { text = await api('transcribe', { audio: b64(it.wav instanceof Uint8Array ? it.wav : new Uint8Array(it.wav)), mime: 'audio/wav', terms: terms, title: it.title || '', prev: '' }, 0); }
+        try { text = await api('transcribe', { audio: b64(it.wav instanceof Uint8Array ? it.wav : new Uint8Array(it.wav)), mime: 'audio/wav', terms: terms, title: it.title || '', prev: '', speakers: !!it.diar }, 0); }
         catch (er) {
           it.tries = (it.tries || 0) + 1;
           if (er.fatal && it.tries >= 5) { await applyRetry(it, '', cache); await idbDel('chunks', it.key); did++; }
@@ -1901,7 +1948,7 @@ var SCR = (function () {
     pending++; showState();
     queue = queue.then(function () {
       var t = cur.talks[meta.talk];
-      return api('transcribe', { audio: b64(wav), mime: 'audio/wav', terms: terms + memoTermsFrom(cur.talks), title: t.title, prev: lastText.slice(-120) }, 2);
+      return api('transcribe', { audio: b64(wav), mime: 'audio/wav', terms: terms + memoTermsFrom(cur.talks), title: t.title, prev: lastText.slice(-120), speakers: !!cur.diar }, 2);
     }).then(function (text) {
       text = applyDict(String(text || '').trim());
       if (!text) return;
@@ -1920,7 +1967,7 @@ var SCR = (function () {
     }).catch(function (e) {
       var tt = cur.talks[meta.talk];
       tt.transcript += '[' + fmt(meta.ms) + '] （文字起こし待ち）\n';      // 通信が戻ったら自動でやり直す（端末内に音声を保管）
-      idbPut('chunks', { key: cur.id + '_' + meta.ms + '_' + Date.now(), sid: cur.id, talkId: tt.id, ms: meta.ms, title: tt.title || '', wav: wav, tries: 0 }).then(function () { retryN++; showState(); });
+      idbPut('chunks', { key: cur.id + '_' + meta.ms + '_' + Date.now(), sid: cur.id, talkId: tt.id, ms: meta.ms, title: tt.title || '', wav: wav, tries: 0, diar: !!cur.diar }).then(function () { retryN++; showState(); });
       logAdd('err', meta.ms, '文字起こしを保留しました（通信が戻ったら自動でやり直します）: ' + e.message); touch();
     }).then(function () { pending--; showState(); });
   }
@@ -1994,8 +2041,11 @@ var SCR = (function () {
     var chair = fs ? (schIt ? schIt.chair : $('sesChair').value) : '';
     cur = { id: id, name: $('sesName').value.trim() || (schIt ? sch.name + ' ' + schIt.date : '録音メモ'), date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), kind: kindV, talks: [] };
     if (other) cur.cong = congName;
+    if ($('sesDiar').checked) cur.diar = true;
     if (kindV === '巡回訪問') { if ($('sesSeries').value.trim()) cur.series = $('sesSeries').value.trim(); cur.meeting = $('sesMeet').value; if ($('sesOverseer').value.trim()) cur.overseer = $('sesOverseer').value.trim(); }
-    var g = (fs || hideProgKind(kindV)) ? null : findProg($('sesProg').value), weekday = !!(sch && schIt && sch.type === '週中の集会'), progText = g ? g.text : '', dayIts = [];
+    var convPart = (['巡回大会', '地区大会'].indexOf(kindV) >= 0) ? partNow() : '';
+    if (convPart) cur.series = convSeries();
+    var g = (fs || hideProgKind(kindV)) ? null : findProg($('sesProg').value), weekday = !!(sch && schIt && sch.type === '週中の集会'), progText = g ? (convPart ? sliceHead(g.text, convPart) : g.text) : '', dayIts = [];
     var wtProg = null;
     if (g && /\|塔\]/.test(g.text) && kindV === '週末の集会') { wtProg = g; g = null; progText = ''; }
     var weekend = !!(sch && schIt && sch.type === '週末の公開講演' && !g && schIt.speaker && !/巡回訪問|巡回大会|特別プログラム/.test(schIt.title));
@@ -2604,11 +2654,11 @@ var SCR = (function () {
     d.onclick = function (e) { e.stopPropagation(); if (window.confirm(label)) onDel(); };
     w.insertBefore(d, w.firstChild);
     var sx = 0, sy = 0, dx = 0, dir = '', base = 0, moved = false;
-    function close() { w.classList.remove('sw'); swSet(w, 0, true); if (swOpen === w) swOpen = null; }
+    function close() { w.classList.remove('swo'); swSet(w, 0, true); if (swOpen === w) swOpen = null; }
     w.addEventListener('touchstart', function (e) {
       var t = e.touches[0]; sx = t.clientX; sy = t.clientY; dx = 0; dir = ''; moved = false;
-      base = w.classList.contains('sw') ? 96 : 0;
-      if (swOpen && swOpen !== w) { swOpen.classList.remove('sw'); swSet(swOpen, 0, true); swOpen = null; }
+      base = w.classList.contains('swo') ? 96 : 0;
+      if (swOpen && swOpen !== w) { swOpen.classList.remove('swo'); swSet(swOpen, 0, true); swOpen = null; }
     }, { passive: true });
     w.addEventListener('touchmove', function (e) {
       var t = e.touches[0], mx = t.clientX - sx, my = t.clientY - sy;
@@ -2616,19 +2666,19 @@ var SCR = (function () {
       if (dir !== 'h') return;
       if (e.cancelable) e.preventDefault();      // 横の動きは、一覧のスクロールにせず自分で受け取る
       moved = true; dx = mx;
-      w.classList.remove('sw'); swSet(w, Math.max(0, Math.min(110, base - dx)), false);
+      w.classList.remove('swo'); swSet(w, Math.max(0, Math.min(110, base - dx)), false);
     }, { passive: false });
     function end() {
       if (dir !== 'h') return;
       var x = Math.max(0, Math.min(110, base - dx));
-      if (x > 48) { w.classList.add('sw'); swSet(w, 0, true); swOpen = w; } else close();
+      if (x > 48) { w.classList.add('swo'); swSet(w, 0, true); swOpen = w; } else close();
       dir = '';
       if (moved) { w._noClick = Date.now(); }
     }
     w.addEventListener('touchend', end); w.addEventListener('touchcancel', end);
     w.addEventListener('click', function (e) {
       if (w._noClick && Date.now() - w._noClick < 400 && !e.target.closest('.swdel')) { e.stopPropagation(); e.preventDefault(); return; }      // なぞったあとの指離しを、タップとして扱わない
-      if (w.classList.contains('sw') && !e.target.closest('.swdel')) { e.stopPropagation(); e.preventDefault(); close(); }
+      if (w.classList.contains('swo') && !e.target.closest('.swdel')) { e.stopPropagation(); e.preventDefault(); close(); }
     }, true);
   }
   function delTalk(x) {
@@ -2727,7 +2777,7 @@ var SCR = (function () {
       var lastSid = '';
       g.forEach(function (x) {
         if (isKid[x.tid]) return;
-        if (ser && x.sid !== lastSid) { lastSid = x.sid; body.appendChild(el('div', 'sessdiv', x.sname)); }      // 巡回訪問：日付・曜日・会合ごとの区切り
+        if (ser && x.sid !== lastSid) { lastSid = x.sid; var pm = /(\d+日目\s*)?(午前|午後)$/.exec(x.sname || ''); body.appendChild(el('div', 'sessdiv', pm ? pm[0].replace(/\s+/, '　') : x.sname)); }      // 巡回訪問：日付・曜日・会合ごとの区切り
         var w = row(x, false);
         if (w) body.appendChild(w);
       });
@@ -2839,7 +2889,7 @@ var SCR = (function () {
     $('rSummary').textContent = t.summary || ''; $('rSumBox').style.display = t.summary ? '' : 'none';
     var nh = noteView(t); $('rNote').innerHTML = nh; $('rNoteBox').style.display = nh ? '' : 'none'; hydrateImgs($('rNote'));
     fillCheck(t);
-    $('rTrans').textContent = t.transcript || ''; $('rTransBox').style.display = t.transcript ? '' : 'none';
+    showRTrans(t); $('rTransBox').style.display = t.transcript ? '' : 'none';
     $('rTransSum').textContent = '文字起こし（' + (t.transcript || '').length + '字）　タップで開く';
   }
   function fillEditor() {
@@ -3122,11 +3172,28 @@ var SCR = (function () {
     if (!$('menuPop').contains(e.target)) $('menuPop').classList.remove('on');
     if (!$('dPop').contains(e.target)) $('dPop').classList.remove('on');
   });
-  function talkText(s, t) {
-    var headLines = ['■ ' + (t.title || '（無題）'), s.date + '　' + s.name];
-    if (t.cong || t.speaker) headLines.push([t.cong, t.speaker].filter(Boolean).join('　'));
-    if ((t.tags || []).length) headLines.push('タグ：' + t.tags.join('、'));
-    return headLines.concat(['', '【要約】', t.summary || '（なし）', '', '【メモ・聖句】', t.note || '（なし）', '', '【文字起こし】', t.transcript || '（なし）']).join('\n');
+  var TSRE = /^\[\d{1,2}:\d{2}(?::\d{2})?\]\s*/gm, SPRE = /^((?:\[[\d:]+\]\s*)?)(?:話者[A-Z]|[一-龥々ぁ-んァ-ヶー]{1,6}(?:[\s　][一-龥々ぁ-んァ-ヶー]{1,6})?(?:兄弟|姉妹|さん)?)[:：]\s*/gm;
+  function plainTrans(tr, keepSp) {      // 時刻（と、必要なら話者名）を除いた文字起こし
+    var s = String(tr || ''); if (!keepSp) s = s.replace(SPRE, '$1');
+    s = s.replace(TSRE, '');
+    if (keepSp) s = s.replace(/\n(?=(?:話者[A-Z]|[^\s:：]{1,12})[:：])/g, '\n\n');
+    return s.trim();
+  }
+  var showTs = false; try { showTs = localStorage.getItem('rm_ts') === '1'; } catch (er) {}
+  function showRTrans(t) { var tr = t && t.transcript || ''; $('rTrans').textContent = showTs ? tr : plainTrans(tr, true); $('rTsBtn').textContent = showTs ? '時刻を隠す' : '時刻を表示する'; }
+  $('rTsBtn').onclick = function (ev) { ev.preventDefault(); showTs = !showTs; try { localStorage.setItem('rm_ts', showTs ? '1' : '0'); } catch (er) {} showRTrans(dTalk); };
+  function talkText(s, t, fmt) {
+    fmt = fmt || ($('dFmt') && $('dFmt').value) || 'body';
+    var head = ['■ ' + (t.title || '（無題）'), s.date + '　' + s.name];
+    if (t.cong || t.speaker) head.push([t.cong, t.speaker].filter(Boolean).join('　'));
+    if ((t.tags || []).length) head.push('タグ：' + t.tags.join('、'));
+    if (fmt === 'sum') head.push('', '【要約】', t.summary || '（なし）');
+    return head.concat(['', '【メモ・聖句】', t.note || '（なし）', '', '【文字起こし】', plainTrans(t.transcript, fmt === 'spk') || '（なし）']).join('\n');
+  }
+  var FMTN = { body: '本文のみ', spk: '話者分離つき', sum: '要約つき' }, toastT = 0;
+  function toast(msg) {
+    var b = $('toast'); if (!b) { b = el('div'); b.id = 'toast'; document.body.appendChild(b); }
+    b.textContent = msg; b.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { b.classList.remove('on'); }, 3200);
   }
   function download(name, text, ext, mime) {
     var a = el('a'); a.href = URL.createObjectURL(new Blob([text], { type: (mime || 'text/plain') + ';charset=utf-8' }));
@@ -3270,13 +3337,14 @@ var SCR = (function () {
   };
   $('dCopy').onclick = function () {
     if (!dTalk) return; readDetail();
-    navigator.clipboard.writeText(talkText(dSes, dTalk)).then(function () { $('dMsg').textContent = 'コピーしました'; })
+    var ct = talkText(dSes, dTalk);
+    navigator.clipboard.writeText(ct).then(function () { $('dMsg').textContent = 'コピーしました'; toast('✓ コピーしました\n「' + (dTalk.title || '無題') + '」（' + FMTN[$('dFmt').value] + '・' + ct.length + '字）'); })
       .catch(function () { $('dMsg').textContent = 'コピーできませんでした。「書き出し」を使ってください。'; });
   };
-  $('dExport').onclick = function () { if (!dTalk) return; readDetail(); download(dSes.date + '_' + (dTalk.title || '無題'), talkText(dSes, dTalk)); };
+  $('dExport').onclick = function () { if (!dTalk) return; readDetail(); download(dSes.date + '_' + (dTalk.title || '無題'), talkText(dSes, dTalk)); toast('✓ 書き出しました（' + FMTN[$('dFmt').value] + '）\n「' + (dTalk.title || '無題') + '」'); };
   $('dExportAll').onclick = function () {
     if (!dTalk) return; readDetail();
-    download(dSes.date + '_' + dSes.name, dSes.talks.map(function (t) { return talkText(dSes, t); }).join('\n\n――――――――――\n\n'));
+    download(dSes.date + '_' + dSes.name, dSes.talks.map(function (t) { return talkText(dSes, t); }).join('\n\n――――――――――\n\n')); toast('✓ 行事全体を書き出しました（' + FMTN[$('dFmt').value] + '）');
   };
 
   // ---------- 辞書・設定・タブ ----------
