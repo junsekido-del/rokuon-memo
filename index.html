@@ -414,7 +414,7 @@ body.kb #memos{flex:0 0 22%}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.8</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.9</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -1060,7 +1060,7 @@ var SCR = (function () {
     [['schSel', '（新規作成）']].forEach(function (p) {
       var sel = $(p[0]), keep = sel.value; sel.innerHTML = '';
       var o = el('option', null, p[1]); o.value = ''; sel.appendChild(o);
-      all.forEach(function (g) { var x = el('option', null, g.name); x.value = g.id; sel.appendChild(x); });
+      all.forEach(function (g) { var x = el('option', null, tidyProgName(g.name, g.text)); x.value = g.id; sel.appendChild(x); });
       sel.value = keep; if (sel.selectedIndex < 0) sel.value = '';
     });
     var kind = $('sesKind').value, ty = KTYPE[kind], t = todayStr();
@@ -1490,6 +1490,19 @@ var SCR = (function () {
   }
   $('pTabItems').onclick = function () { setPTab('items'); };
   $('pTabQ').onclick = function () { setPTab('q'); };
+  function tidyProgName(name, text) {      // 長い見出しを短くし、年だけで月がないときは本文の日付から月を補う
+    var n = String(name || '').replace(/クリスチャンとしての生活と奉仕/g, '').replace(/[\s　]+/g, ' ').trim();
+    if (!/月/.test(n)) {
+      var ms = [], m, re = /#\[(\d{4})-(\d{2})-\d{2}~(\d{4})-(\d{2})-\d{2}/g;
+      while ((m = re.exec(text || ''))) { ms.push(m[1] + '-' + m[2]); ms.push(m[3] + '-' + m[4]); }
+      if (ms.length) {
+        ms.sort(); var a = ms[0].split('-'), z = ms[ms.length - 1].split('-'), mo = Number(a[1]) + (a[0] !== z[0] || a[1] !== z[1] ? '～' + (a[0] !== z[0] ? z[0] + '年' : '') + Number(z[1]) : '');
+        var lab = a[0] + '年' + mo + '月';
+        n = /(^|\D)\d{4}年?(?!\d)/.test(n) ? n.replace(/\d{4}年?(?!\d)/, lab) : (n + ' ' + lab).trim();
+      }
+    }
+    return n || String(name || '');
+  }
   function fillProgSelects() {
     [['sesProg', '（プログラムなし：タイトルを自分で入力）'], ['progSel', '（新規作成）']].forEach(function (p) {
       var sel = $(p[0]), keep = sel.value, kd = p[0] === 'sesProg' ? $('sesKind').value : '';
@@ -1564,7 +1577,7 @@ var SCR = (function () {
         if (!window.initSqlJs) await loadScript(SQLJS + 'sql-wasm.js');
         var SQL = await window.initSqlJs({ locateFile: function (n) { return SQLJS + n; } });
         var r = await JW.parse(buf, SQL, DOMParser);
-        $('progSel').value = ''; $('progName').value = r.name; $('progText').value = r.text; $('progKind').value = guessProgKind(r.name, r);
+        $('progSel').value = ''; $('progName').value = tidyProgName(r.name, r.text); $('progText').value = r.text; $('progKind').value = guessProgKind(r.name, r);
         msg.textContent = '読み取りました' + (r.theme ? '（主題：' + r.theme + '）' : '') + '。内容を確認して「保存」を押してください。歌・音楽の行も含めています。';
       } else {
         msg.textContent = 'PDFをGeminiで読み取り中…（数十秒かかることがあります）';
@@ -1998,7 +2011,7 @@ var SCR = (function () {
         if (wtTitle || !/\|塔\]/.test(pg.text || '')) return;
         var ws = weekSlice(pg.text, schIt.date); if (ws) wtTitle = ws.split('\n')[0].replace(/^#(\[[^\]]*\])?\s*/, '').trim();
       });
-      progText = '公開講演：' + schIt.title + '\n「塔」研究' + (wtTitle ? '：' + wtTitle : '') + (schIt.reader ? '（朗読：' + schIt.reader + '）' : '');
+      progText = '公開講演：' + schIt.title + '\n「塔」研究' + (wtTitle ? '：' + wtTitle : '') + ((schIt.conductor || schIt.reader) ? '（' + (schIt.conductor ? '司会：' + schIt.conductor : '') + (schIt.conductor && schIt.reader ? '／' : '') + (schIt.reader ? '朗読：' + schIt.reader : '') + '）' : '');
     }
     items = progText ? progItems(progText) : [];
     if (weekday && items.length) {      // 開会（歌と祈り・開会の言葉）と閉会（閉会の言葉・発表・歌と祈り）を前後に足す
