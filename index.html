@@ -239,10 +239,10 @@ nav button span{white-space:nowrap}
 .talk b{font-size:18px !important;font-weight:500}
 .trow.kid .talk b{font-size:16px !important}
 .trow,.swp{position:relative;overflow:hidden}
-.swdel{position:absolute;left:0;top:0;bottom:0;width:96px;border:0 !important;border-radius:0 !important;background:#E5484D;color:#fff;font-size:18px;font-weight:700;visibility:hidden}
+.swdel{position:absolute;right:0;top:0;bottom:0;width:96px;border:0 !important;border-radius:0 !important;background:#E5484D;color:#fff;font-size:18px;font-weight:700;visibility:hidden}
 .sw>.swdel{visibility:visible}
 .trow>*:not(.swdel),.swp>*:not(.swdel){transition:transform .15s}
-.sw>*:not(.swdel){transform:translateX(96px)}
+.sw>*:not(.swdel){transform:translateX(-96px)}
 .bib{font-size:20px !important;font-weight:700;padding:14px 16px;border-radius:12px;margin:8px 0}
 .bib.ok{background:#12382a;color:#6FD38B;border:2px solid #2f9e6a}.bib.no{background:#3a2a10;color:#F0A35B;border:2px solid #b9791f}
 .krow{display:flex;gap:6px;align-items:center}.krow .kr{flex:1}.krow button.mv{min-height:44px;width:44px;padding:0;border-radius:10px}
@@ -305,11 +305,16 @@ nav button span{white-space:nowrap}
     <h2>録音をはじめる</h2>
     <label class="f" for="sesKind">種別</label>
     <select id="sesKind"></select>
-    <label class="f" for="sesOwn">会衆</label>
+    <label class="f" for="sesOwn" id="lblOwn">会衆</label>
     <select id="sesOwn"><option value="own">自分の会衆</option><option value="other">他の会衆に参加</option></select>
     <div id="otherBox" style="display:none">
       <label class="f" for="sesCong">参加した会衆の名前</label>
       <input type="text" id="sesCong" placeholder="会衆名（候補から選べます）" list="dlCong">
+    </div>
+    <div id="seriesBox" style="display:none">
+      <label class="f" for="sesSeries">まとまりの名前（同じ名前にすると、メモ一覧で一つにまとまります）</label>
+      <input type="text" id="sesSeries" list="dlSeries">
+      <datalist id="dlSeries"></datalist>
     </div>
     <label class="f" for="sesName">行事名</label>
     <input type="text" id="sesName" placeholder="種別・予定表・プログラムを選ぶと自動で入ります">
@@ -381,7 +386,7 @@ nav button span{white-space:nowrap}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.5</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.6</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -393,9 +398,7 @@ nav button span{white-space:nowrap}
     <select id="fStatus" aria-label="状態で絞り込む"><option value="">すべての状態</option><option>未整理</option><option>整理済</option></select>
   </div>
   <input type="search" id="q" placeholder="検索（例：先月、去年の秋 愛、11月の初め）">
-  <select id="fKind" hidden aria-label="種別で絞り込む">
-    <option value="">すべての種別</option><option>集会</option><option>巡回大会</option><option>特別プログラム</option><option>地区大会</option><option>Zoom会議</option><option>その他</option>
-  </select>
+  <select id="fKind" hidden aria-label="種別で絞り込む"><option value="">すべての種別</option></select>
   <div id="listMsg" class="hint"></div>
   <div id="talks"></div>
 </section>
@@ -471,7 +474,15 @@ nav button span{white-space:nowrap}
     <div class="row" style="margin-top:10px"><button id="btnSpkAdd">＋ 追加</button><button id="btnSpkSave" class="primary">保存</button><span id="spkMsg" class="hint"></span></div>
   </div>
   <div class="card">
+    <h2>種別の名前</h2>
+    <div class="hint">種別の表示名を変えられます（すでに記録したメモはそのまま引き継がれます）。空にすると元の名前に戻ります。</div>
+    <div id="kindNameRows"></div>
+    <div class="row" style="margin-top:10px"><button id="btnKindNames" class="primary">保存</button><span id="kindNameMsg" class="hint"></span></div>
+  </div>
+  <div class="card">
     <h2>会衆の成員の名簿</h2>
+    <label class="f" for="ownGroup">自分の野外奉仕のグループ（「野外奉仕のための集まり」の司会者の候補が、このグループの人から出ます）</label>
+    <input type="text" id="ownGroup" placeholder="名簿のグループ欄と同じ表記（例：1）">
     <div class="hint">名前の後ろに付く「兄弟」「姉妹」を、一人ずつ選びます。予定表から入る名前にも自動で付きます。話者の名前の候補にも使います。</div>
     <div id="memRows"></div>
     <div class="row" style="margin-top:10px"><button id="btnMemAdd">＋ 追加</button><button id="btnMemSave" class="primary">保存</button><span id="memMsg" class="hint"></span></div>
@@ -561,7 +572,9 @@ nav button span{white-space:nowrap}
         <div class="grow"><label class="f" for="dSpeaker">講演者</label><input type="text" id="dSpeaker" list="dlSpeaker"></div>
       </div>
       <label class="f" for="dKind">行事の種別（この行事の講演すべてに共通）</label>
-      <select id="dKind"><option>集会</option><option>巡回大会</option><option>特別プログラム</option><option>地区大会</option><option>Zoom会議</option><option>その他</option></select>
+      <select id="dKind"></select>
+      <label class="f" for="dSeries">まとまりの名前（巡回訪問など。同じ名前の行事が一つにまとまります）</label>
+      <input type="text" id="dSeries" list="dlSeries">
       <div class="row" style="margin-top:8px">
         <div class="grow"><label class="f" for="dChair">司会者（この行事）</label><input type="text" id="dChair" list="dlSpeaker"></div>
         <div class="grow"><label class="f" for="dReader">朗読者（この行事）</label><input type="text" id="dReader" list="dlSpeaker"></div>
@@ -960,7 +973,7 @@ var SCR = (function () {
   function b64(u8) { var s = '', n = 0x8000; for (var i = 0; i < u8.length; i += n) s += String.fromCharCode.apply(null, u8.subarray(i, i + n)); return btoa(s); }
 
   var cfg = lsGet('rm_cfg', { url: '', token: '' });
-  var settings = { dict: '', programs: [], congs: [], speakers: [], members: [], schedules: [], ownCong: '' };
+  var settings = { dict: '', programs: [], congs: [], speakers: [], members: [], schedules: [], ownCong: '', kindNames: {}, ownGroup: '' };
   var dict = [], terms = '';
   var index = [], deepHits = null;
 
@@ -1000,7 +1013,8 @@ var SCR = (function () {
   function dayDiff(a, b) { return Math.abs((new Date(a + 'T00:00:00') - new Date(b + 'T00:00:00')) / 86400000); }
   function todayStr() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
   var KTYPE = { '週中の集会': '週中の集会', '週末の集会': '週末の公開講演', '野外奉仕のための集まり': '野外奉仕のための集まり' };
-  function isOther() { return $('sesOwn').value === 'other'; }
+  function isOrg() { return ORGK.indexOf($('sesKind').value) >= 0; }
+  function isOther() { return !isOrg() && $('sesOwn').value === 'other'; }
   function mdText(d) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d || ''); return m ? (+m[2]) + '月' + (+m[3]) + 'の日'.slice(0, 0) + '日' : ''; }
   function fillSchSelects() {
     var all = settings.schedules || [];
@@ -1047,23 +1061,41 @@ var SCR = (function () {
     if (kind === '週中の集会') base = d + ' 週日の集会';
     else if (kind === '週末の集会') base = d + ' 週末の集会';
     else if (kind === '野外奉仕のための集まり') base = d + ' 野外奉仕のための集まり';
+    else if (kind === '巡回訪問') base = d + ' 巡回訪問（　）';
     else if (g) base = g.name;
     if (isOther() && $('sesCong').value.trim() && base) base = $('sesCong').value.trim() + '　' + base;
     return base;
   }
   function autoName() { if (!nameManual) $('sesName').value = autoNameText(); }
   function updateSetup() {      // 種別・会衆の区分に合わせて、入力欄の出し分け
-    var kind = $('sesKind').value, fs = kind === '野外奉仕のための集まり', other = isOther();
+    var kind = $('sesKind').value, fs = kind === '野外奉仕のための集まり', org = isOrg(), other = isOther();
     $('lblProg').style.display = $('sesProg').style.display = fs ? 'none' : '';
+    $('lblOwn').style.display = $('sesOwn').style.display = (org || fs) ? 'none' : '';      // 大会・巡回訪問などは自分の会衆ではなく、野外奉仕は自分のグループが基本
     $('otherBox').style.display = other ? '' : 'none';
-    $('chairBox').style.display = (fs && !other && !curSchIt()) ? '' : 'none';
-    if (!other && (KTYPE[kind] ? (settings.schedules || []).some(function (g) { return g.type === KTYPE[kind]; }) : false)) $('schBox').style.display = ''; else $('schBox').style.display = 'none';
+    $('seriesBox').style.display = kind === '巡回訪問' ? '' : 'none';
+    $('chairBox').style.display = (fs && !curSchIt()) ? '' : 'none';
+    if (!other && !org && (KTYPE[kind] ? (settings.schedules || []).some(function (g) { return g.type === KTYPE[kind]; }) : false)) $('schBox').style.display = ''; else $('schBox').style.display = 'none';
+    if (kind === '巡回訪問' && !$('sesSeries').value) $('sesSeries').value = defaultSeries();
     autoName();
+  }
+  function defaultSeries() {      // 直近（1週間以内）のまとまりがあればそれを、なければ今週の名前を提案
+    var t = todayStr(), best = '', bd = '';
+    index.forEach(function (x) { if (x.series && x.date <= t && x.date >= (function () { var d = new Date(); d.setDate(d.getDate() - 7); return ymd(d); })() && x.date > bd) { bd = x.date; best = x.series; } });
+    if (best) return best;
+    var d = new Date(), w = d.getDay(); d.setDate(d.getDate() - (w === 0 ? 6 : w - 1));
+    return '巡回訪問 ' + (d.getMonth() + 1) + '月' + d.getDate() + '日の週';
+  }
+  function fillSeriesList() {
+    var seen = {}, dl = $('dlSeries'); dl.innerHTML = '';
+    index.forEach(function (x) { if (x.series && !seen[x.series]) { seen[x.series] = 1; var o = el('option'); o.value = x.series; dl.appendChild(o); } });
   }
   function fillChair() {
     var sel = $('sesChair'), keep = sel.value; sel.innerHTML = '';
     var o = el('option', null, '（司会者を選ぶ）'); o.value = ''; sel.appendChild(o);
-    plainMembers().forEach(function (n) { var x = el('option', null, n); x.value = n; sel.appendChild(x); });
+    var og = (settings.ownGroup || '').trim(), mine = [], rest = [];
+    (settings.members || []).forEach(function (s) { var m = memParse(s); if (!m.name) return; (og && m.group === og ? mine : rest).push(m.name); });
+    function add(list, label) { if (!list.length) return; var p = label ? el('optgroup') : sel; if (label) p.label = label; list.forEach(function (n) { var x = el('option', null, n); x.value = n; p.appendChild(x); }); if (label) sel.appendChild(p); }
+    if (mine.length) { add(mine, 'グループ ' + og); add(rest, 'その他の人'); } else add(rest, '');
     sel.value = keep; if (sel.selectedIndex < 0) sel.value = '';
   }
   $('sesName').addEventListener('input', function () { nameManual = !!$('sesName').value.trim(); });
@@ -1195,7 +1227,7 @@ var SCR = (function () {
   $('btnSpkAdd').onclick = function () { addListRow('spkRows', '').focus(); };
   $('btnCongSave').onclick = function () { settings.congs = readRows('congRows'); refreshDatalists(); $('congMsg').textContent = '保存中…'; saveSettings($('congMsg'), '保存しました（' + settings.congs.length + '件）'); };
   $('btnMemAdd').onclick = function () { addMemRow('').focus(); };
-  $('btnMemSave').onclick = function () { settings.members = readMem(); $('memMsg').textContent = '保存中…'; saveSettings($('memMsg'), '保存しました（' + settings.members.length + '件）'); refreshDatalists(); };
+  $('btnMemSave').onclick = function () { settings.ownGroup = $('ownGroup').value.trim(); settings.members = readMem(); fillChair(); $('memMsg').textContent = '保存中…'; saveSettings($('memMsg'), '保存しました（' + settings.members.length + '件）'); refreshDatalists(); };
   $('btnSpkSave').onclick = function () { settings.speakers = readRows('spkRows'); refreshDatalists(); $('spkMsg').textContent = '保存中…'; saveSettings($('spkMsg'), '保存しました（' + settings.speakers.length + '件）'); };
 
   // ---------- まとめて登録（テキスト・CSV）／名簿PDF ----------
@@ -1738,6 +1770,7 @@ var SCR = (function () {
     var chair = fs ? (schIt ? schIt.chair : $('sesChair').value) : '';
     cur = { id: id, name: $('sesName').value.trim() || (schIt ? sch.name + ' ' + schIt.date : '録音メモ'), date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), kind: kindV, talks: [] };
     if (other) cur.cong = congName;
+    if (kindV === '巡回訪問' && $('sesSeries').value.trim()) cur.series = $('sesSeries').value.trim();
     var g = fs ? null : findProg($('sesProg').value), weekday = !!(sch && schIt && sch.type === '週中の集会'), progText = g ? g.text : '', dayIts = [];
     var wtProg = null;
     if (g && /\|塔\]/.test(g.text) && kindV === '週末の集会') { wtProg = g; g = null; progText = ''; }
@@ -2172,11 +2205,15 @@ var SCR = (function () {
     } catch (e) { $('dMsg').textContent = '写真を入れられませんでした: ' + e.message; }
   };
 
-  var selKey = '', fTag = '', KINDS = ['週中の集会', '週末の集会', '野外奉仕のための集まり', '巡回大会', '特別プログラム', '地区大会', 'Zoom会議', 'その他'];
-  var KMETA = { '週中の集会': ['🏠', '#3E8EF7'], '週末の集会': ['🎤', '#F5A623'], '野外奉仕のための集まり': ['🚶', '#30B27A'], '巡回大会': ['🏢', '#A66BE8'], '特別プログラム': ['⭐', '#E5484D'], '地区大会': ['🏟️', '#14B8C4'], 'Zoom会議': ['📹', '#5E5CE6'], 'その他': ['📁', '#8E8E93'] };
-  function kindOf(x) {      // 昔の「集会」は、土日なら週末の集会・それ以外は週中の集会として扱う
+  var selKey = '', fTag = '', KINDS = ['週中の集会', '週末の集会', '野外奉仕のための集まり', '巡回訪問', '巡回大会', '地区大会', '特別プログラム', 'その他'];
+  var KMETA = { '週中の集会': ['🏠', '#3E8EF7'], '週末の集会': ['🎤', '#F5A623'], '野外奉仕のための集まり': ['🚶', '#30B27A'], '巡回訪問': ['🧳', '#D9822B'], '巡回大会': ['🏢', '#A66BE8'], '地区大会': ['🏟️', '#14B8C4'], '特別プログラム': ['⭐', '#E5484D'], 'その他': ['📁', '#8E8E93'] };
+  var KDEF = { '野外奉仕のための集まり': '野外奉仕のため' };      // 左の一覧で切れないように、短くした表示名
+  var ORGK = ['巡回大会', '地区大会', '特別プログラム', '巡回訪問'];      // 自分の会衆以外の兄弟が担当する（会衆・司会者を選ばない）
+  function kindLabel(k) { return ((settings.kindNames || {})[k]) || KDEF[k] || k; }
+  function kindOf(x) {      // 昔の「集会」は、土日なら週末の集会・それ以外は週中の集会／昔のZoom会議はその他
     var k = x.kind || 'その他';
     if (k === '集会') { var w = new Date((x.date || '') + 'T00:00:00').getDay(); return (w === 0 || w === 6) ? '週末の集会' : '週中の集会'; }
+    if (KINDS.indexOf(k) < 0) return 'その他';
     return k;
   }
   function kindColor(k) { return (KMETA[k] || KMETA['その他'])[1]; }
@@ -2187,17 +2224,18 @@ var SCR = (function () {
     return c;
   }
   function kindOrder() {
-    var o = lsGet('rm_kindorder', null); if (!Array.isArray(o)) return KINDS.slice();
+    var o = lsGet('rm_kindorder2', null); if (!Array.isArray(o)) return KINDS.slice();
     var r = o.filter(function (k) { return KINDS.indexOf(k) >= 0; });
     KINDS.forEach(function (k) { if (r.indexOf(k) < 0) r.push(k); });
     return r;
   }
   var kindInit = false;
   function applyKindSelects() {
-    ['sesKind', 'dKind'].forEach(function (id) {
+    ['sesKind', 'dKind', 'fKind'].forEach(function (id) {
       var sel = $(id), v = sel.value; sel.innerHTML = '';
-      kindOrder().forEach(function (k) { sel.appendChild(el('option', null, k)); });
-      if (id === 'dKind') { var ex = el('option', null, '集会'); ex.hidden = true; sel.appendChild(ex); }
+      if (id === 'fKind') { var al = el('option', null, 'すべての種別'); al.value = ''; sel.appendChild(al); }
+      kindOrder().forEach(function (k) { var o = el('option', null, kindLabel(k)); o.value = k; sel.appendChild(o); });
+      if (id === 'dKind') ['集会', 'Zoom会議'].forEach(function (lg) { var ex = el('option', null, lg); ex.value = lg; ex.hidden = true; sel.appendChild(ex); });
       if (v) sel.value = v;
     });
   }
@@ -2239,22 +2277,36 @@ var SCR = (function () {
       if (!lifted) return;
       lifted = false; row.classList.remove('lift'); row.style.transform = '';
       var ord = Array.prototype.map.call(box.querySelectorAll('.krow'), function (r) { return r.dataset.kind; });
-      lsSet('rm_kindorder', ord); applyKindSelects();
+      lsSet('rm_kindorder2', ord); applyKindSelects();
       setTimeout(function () { kindDragged = false; }, 300);
     }
     row.addEventListener('touchend', end); row.addEventListener('touchcancel', end);
   }
+  function gkey(x) { return x.series ? 'S:' + x.series : x.sid; }
+  function renderKindNames() {
+    var box = $('kindNameRows'); if (!box) return; box.innerHTML = '';
+    KINDS.forEach(function (k) {
+      var r = el('div', 'drow'), l = el('span', null, ((KMETA[k] || [''])[0]) + ' ' + k); l.style.cssText = 'min-width:190px;opacity:.75';
+      var i = el('input'); i.type = 'text'; i.dataset.k = k; i.value = (settings.kindNames || {})[k] || ''; i.placeholder = KDEF[k] || k;
+      r.appendChild(l); r.appendChild(i); box.appendChild(r);
+    });
+  }
+  $('btnKindNames').onclick = function () {
+    var o = {}; Array.prototype.forEach.call($('kindNameRows').querySelectorAll('input'), function (i) { var v = i.value.trim(); if (v) o[i.dataset.k] = v; });
+    settings.kindNames = o; renderKinds(); fillSchSelects();
+    saveSettings($('kindNameMsg'), '保存しました');
+  };
   function renderKinds() {
     if (kindDragged) return;      // 並べ替えの最中は、画面を作り直さない
     var box = $('kinds'); box.innerHTML = '';
-    var nh = el('div', 'nh', '種別　（長押しして上下に動かすと並べ替え）'); box.appendChild(nh);
+    var nh = el('div', 'nh', '種別'); box.appendChild(nh);
     var cur = $('fKind').value, ord = kindOrder();
     ord.forEach(function (k) {
-      var n = index.filter(function (x) { return kindOf(x) === k; }).length, meta = KMETA[k] || KMETA['その他'];
+      var seenG = {}, n = 0; index.forEach(function (x) { if (kindOf(x) === k && !seenG[gkey(x)]) { seenG[gkey(x)] = 1; n++; } }); var meta = KMETA[k] || KMETA['その他'];
       var row = el('div', 'krow'); row.dataset.kind = k;
       var b = el('button', 'kr' + (cur === k ? ' on' : ''));
       var ic = el('i', 'kic', meta[0]); ic.style.background = meta[1];
-      b.appendChild(ic); b.appendChild(el('span', null, k)); b.appendChild(el('span', 'cnt', String(n)));
+      b.appendChild(ic); b.appendChild(el('span', null, kindLabel(k))); b.appendChild(el('span', 'cnt', String(n)));
       b.onclick = function () { if (kindDragged) return; $('fKind').value = (cur === k ? '' : k); goTab('list', true); };
       row.appendChild(b); box.appendChild(row); enableDrag(row, box);
     });
@@ -2315,7 +2367,7 @@ var SCR = (function () {
   // 左から右へなぞると「削除」ボタンが出る
   var swOpen = null;
   function swSet(w, x, anim) {
-    Array.prototype.forEach.call(w.children, function (c) { if (c.classList.contains('swdel')) return; c.style.transition = anim ? '' : 'none'; c.style.transform = x ? 'translateX(' + x + 'px)' : ''; });
+    Array.prototype.forEach.call(w.children, function (c) { if (c.classList.contains('swdel')) return; c.style.transition = anim ? '' : 'none'; c.style.transform = x ? 'translateX(' + (-x) + 'px)' : ''; });
   }
   function addSwipe(w, label, onDel) {
     var d = el('button', 'swdel', '削除'); d.setAttribute('aria-label', label);
@@ -2334,11 +2386,11 @@ var SCR = (function () {
       if (dir !== 'h') return;
       if (e.cancelable) e.preventDefault();      // 横の動きは、一覧のスクロールにせず自分で受け取る
       moved = true; dx = mx;
-      w.classList.remove('sw'); swSet(w, Math.max(0, Math.min(110, base + dx)), false);
+      w.classList.remove('sw'); swSet(w, Math.max(0, Math.min(110, base - dx)), false);
     }, { passive: false });
     function end() {
       if (dir !== 'h') return;
-      var x = Math.max(0, Math.min(110, base + dx));
+      var x = Math.max(0, Math.min(110, base - dx));
       if (x > 48) { w.classList.add('sw'); swSet(w, 0, true); swOpen = w; } else close();
       dir = '';
       if (moved) { w._noClick = Date.now(); }
@@ -2351,6 +2403,12 @@ var SCR = (function () {
   }
   function delTalk(x) {
     api('deleteTalk', { sid: x.sid, tid: x.tid }, 1).then(function () { if (selKey === x.sid + '/' + x.tid) { selKey = ''; $('detail').classList.remove('on'); } return loadIndex(); })
+      .catch(function (e) { $('listMsg').textContent = '削除できませんでした: ' + e.message; });
+  }
+  function delGroup(g) {
+    var sids = Object.keys(g.reduce(function (m, x) { m[x.sid] = 1; return m; }, {}));
+    sids.reduce(function (p, sid) { return p.then(function () { return api('deleteSession', { sid: sid }, 1); }); }, Promise.resolve())
+      .then(function () { $('detail').classList.remove('on'); return loadIndex(); })
       .catch(function (e) { $('listMsg').textContent = '削除できませんでした: ' + e.message; });
   }
   function delSession(sid, n) {
@@ -2374,26 +2432,27 @@ var SCR = (function () {
     if (fTag) rows = rows.filter(function (x) { return (x.tags || []).indexOf(fTag) >= 0; });
     // 行事ごとにまとめる（行事の中はプログラム順＝保存されている順）
     var groups = {}, order = [];
-    rows.forEach(function (x) { if (!groups[x.sid]) { groups[x.sid] = []; order.push(x.sid); } groups[x.sid].push(x); });
+    rows.forEach(function (x) { var k = gkey(x); if (!groups[k]) { groups[k] = []; order.push(k); } groups[k].push(x); });
     function todo(sid) { return groups[sid].filter(function (x) { return x.status !== '整理済'; }).length; }
     var todoFirst = $('chkTodo').checked;
     order.sort(function (a, b) {
       if (todoFirst) { var ta = todo(a) ? 0 : 1, tb = todo(b) ? 0 : 1; if (ta !== tb) return ta - tb; }
+      var da = groups[a][0].date, db = groups[b][0].date; if (da !== db) return da < db ? 1 : -1;
       return a < b ? 1 : a > b ? -1 : 0;
     });
-    if (collapseAll) { index.forEach(function (x) { openG[x.sid] = false; }); Object.keys(openP).forEach(function (k) { openP[k] = false; }); collapseAll = false; }
+    if (collapseAll) { index.forEach(function (x) { openG[gkey(x)] = false; }); Object.keys(openP).forEach(function (k) { openP[k] = false; }); collapseAll = false; }
     var td = new Date(), today = td.getFullYear() + '-' + pad(td.getMonth() + 1) + '-' + pad(td.getDate());
     order.forEach(function (sid) {
       var g = groups[sid];
       var open = openG[sid] !== undefined ? openG[sid] : (!!q || !!fTag || g[0].date === today);   // 基本は折りたたみ。今日の行事だけ開く
       var h = el('button', 'grp'); h.style.borderLeftColor = kindColor(kindOf(g[0]));
       h.setAttribute('aria-expanded', open ? 'true' : 'false');
-      var gt = el('span', 'gt', g[0].date + '　' + g[0].sname);
+      var ser = !!g[0].series, ds = g.map(function (x) { return x.date; }).sort(), gt = el('span', 'gt', (ser ? (ds[0] === ds[ds.length - 1] ? ds[0] : ds[0] + '〜' + ds[ds.length - 1]) + '　' + g[0].series : g[0].date + '　' + g[0].sname));
       var n = todo(sid);
-      gt.appendChild(el('small', null, kindOf(g[0]) + '　' + g.length + '件' + (n ? '　未整理 ' + n + '件' : '　すべて整理済')));
+      gt.appendChild(el('small', null, kindLabel(kindOf(g[0])) + (ser ? '　' + Object.keys(g.reduce(function (m, x) { m[x.sid] = 1; return m; }, {})).length + '回の記録' : '') + '　' + g.length + '件' + (n ? '　未整理 ' + n + '件' : '　すべて整理済')));
       h.appendChild(gt); h.appendChild(el('span', 'arrow', open ? '▾' : '▸'));
       h.onclick = function () { openG[sid] = !open; renderList(); };
-      var hw = el('div', 'swp'); hw.appendChild(h); addSwipe(hw, 'この行事のメモ ' + g.length + '件をすべて削除しますか？（Googleドライブのごみ箱に入ります）', function () { delSession(sid, g.length); });
+      var hw = el('div', 'swp'); hw.appendChild(h); addSwipe(hw, (ser ? 'このまとまり（' + g[0].series + '）のメモ ' : 'この行事のメモ ') + g.length + '件をすべて削除しますか？（Googleドライブのごみ箱に入ります）', function () { delGroup(g); });
       box.appendChild(hw);
       if (!open) return;
       var body = el('div', 'grpBody');
@@ -2412,6 +2471,7 @@ var SCR = (function () {
         bt.appendChild(document.createTextNode(child ? x.title.slice(x.title.indexOf('／') + 1) : x.title));
         b.appendChild(bt);
         var who = [x.cong, x.speaker].filter(Boolean).join('　'), ck = clockOf(x);
+        if (ser) who = x.sname + (who ? '　' + who : '');
         if (ck) who = ck + '〜' + (who ? '　' + who : '');
         if (who) b.appendChild(el('small', null, who));
         b.onclick = function () {
@@ -2553,7 +2613,7 @@ var SCR = (function () {
   function fillEditor() {
     var t = dTalk;
     $('dTitle').value = t.title || ''; $('dCong').value = t.cong || ''; $('dSpeaker').value = t.speaker || '';
-    $('dKind').value = dSes.kind || 'その他';
+    $('dKind').value = dSes.kind || 'その他'; $('dSeries').value = dSes.series || ''; fillSeriesList();
     $('dChair').value = (dSes.roles && dSes.roles.chair) || ''; $('dReader').value = (dSes.roles && dSes.roles.reader) || '';
     $('dTags').value = (t.tags || []).join('、'); $('dStatus').value = t.status || '未整理';
     $('dSummary').value = t.summary || ''; $('dTrans').value = t.transcript || '';
@@ -2594,7 +2654,7 @@ var SCR = (function () {
   }
   function readDetail() {
     dTalk.title = $('dTitle').value.trim(); dTalk.cong = $('dCong').value.trim(); dTalk.speaker = $('dSpeaker').value.trim();
-    dSes.kind = $('dKind').value;
+    dSes.kind = $('dKind').value; if ($('dSeries').value.trim()) dSes.series = $('dSeries').value.trim(); else delete dSes.series;
     var ch = $('dChair').value.trim(), rd = $('dReader').value.trim();
     if (ch || rd) { var oldR = dSes.roles || {}; dSes.roles = { chair: ch, reader: rd, conductor: oldR.conductor || '', names: oldR.names || [] }; } else delete dSes.roles;
     dTalk.tags = curTags();
@@ -3044,7 +3104,8 @@ var SCR = (function () {
     $('cfUrl').value = cfg.url; $('cfToken').value = cfg.token;
     if (!cfg.url || !cfg.token) { setStatus('はじめに「設定」でGASのURLと合言葉を入力してください'); return Promise.resolve(); }
     return api('loadSettings', null, 1).then(function (s) {
-      settings = { dict: (s && s.dict) || '', programs: (s && s.programs) || [], congs: (s && s.congs) || [], speakers: (s && s.speakers) || [], members: (s && s.members) || [], schedules: (s && s.schedules) || [], ownCong: (s && s.ownCong) || '' };
+      settings = { dict: (s && s.dict) || '', programs: (s && s.programs) || [], congs: (s && s.congs) || [], speakers: (s && s.speakers) || [], members: (s && s.members) || [], schedules: (s && s.schedules) || [], ownCong: (s && s.ownCong) || '', kindNames: (s && s.kindNames) || {}, ownGroup: (s && s.ownGroup) || '' };
+      $('ownGroup').value = settings.ownGroup; renderKindNames();
       listRows('congRows', settings.congs); listRows('spkRows', settings.speakers); listMem(settings.members); renderProgCongs(true); refreshDatalists(); fillChair();
       applyKindSelects();
       if (!kindInit) { kindInit = true; var dw = new Date().getDay(); $('sesKind').value = (dw === 0 || dw === 6) ? '週末の集会' : '週中の集会'; }      // 曜日から、種別の初期値を決める
