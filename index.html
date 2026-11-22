@@ -169,7 +169,7 @@
   #shareDlg .box { width: min(480px, 92vw); background: var(--card); border-radius: 20px; padding: 22px; }
   .chk { display: flex; align-items: center; gap: 10px; font-size: 20px; padding: 10px 0; }
   .chk input { width: 24px; height: 24px; }
-  .qtabs { display: none; gap: 6px; margin-bottom: 6px; }
+  .qtabs { display: none; gap: 6px; margin-bottom: 6px; position: sticky; top: -14px; z-index: 3; background: var(--card); padding: 4px 0; }
   .hasq .qtabs { display: flex; }
   .qtabs button { flex: 1; min-height: 42px; padding: 4px; font-size: 16px; border-radius: 21px; border: 0; background: var(--chip); }
   .qtabs button.on { background: var(--accent); color: var(--on-accent); font-weight: 700; }
@@ -277,6 +277,10 @@ input,textarea{-webkit-text-security:none}
 #toast.on{display:block}
 #dFmtBox{padding:10px 14px;border-bottom:1px solid var(--edge)}#dFmtBox label{font-size:14px;color:var(--sub);display:block;margin-bottom:4px}
 #rTsBtn{min-height:36px;font-size:15px;padding:2px 14px;border-radius:18px;margin:6px 0}
+.mrow{flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--edge)}
+.mrow .mn{flex:1 1 100%;min-width:0}
+.mrow .ms{flex:1 1 90px}.mrow .mg{flex:1 1 110px;min-width:90px}.mrow .mr{flex:1 1 100px}
+.mrow button{flex:0 0 auto}
 /* ---- v10.5 ---- */
 .backconf{margin-bottom:10px;min-height:46px;font-size:18px;border-radius:23px;padding:0 20px}
 .bigbtns{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
@@ -288,6 +292,9 @@ input,textarea{-webkit-text-security:none}
 #vuMsg{font-size:14px;color:#F0A35B;white-space:nowrap}
 #pauseBanner{display:none;position:fixed;left:0;right:0;top:0;z-index:30;background:#B7791F;color:#fff;font-size:20px;font-weight:700;text-align:center;padding:10px;padding-top:calc(10px + env(safe-area-inset-top))}
 #pauseBanner.on{display:block}
+#intBanner{display:none;position:fixed;left:0;right:0;top:0;z-index:31;background:#B83232;color:#fff;font-size:19px;font-weight:700;text-align:center;padding:10px;padding-top:calc(10px + env(safe-area-inset-top));line-height:1.6}
+#intBanner.on{display:block}
+#intBanner button{margin-left:8px;min-height:40px}
 #btnPause.on{background:#B7791F;color:#fff}
 .nexthint{display:block;font-size:12px;font-weight:400;opacity:.85}
 /* メモ一覧：文字と余白を小さく（2〜3割） */
@@ -329,6 +336,7 @@ input,textarea{-webkit-text-security:none}
 
 <!-- 録音 -->
 <section id="tab-rec" class="on">
+  <div id="intBanner"><span id="intMsg"></span> <button id="intRestart" class="primary">🎤 マイクを再開</button> <button id="intClose">閉じる</button></div>
   <div id="pauseBanner">⏸ 一時停止中（この間の音は録音されません）　<button id="btnResume" class="primary">▶ 再開</button></div>
   <div id="setup" class="card">
     <h2>録音をはじめる</h2>
@@ -348,6 +356,10 @@ input,textarea{-webkit-text-security:none}
       <label class="f" for="sesSeries">まとまりの名前（同じ名前にすると、メモ一覧で一つにまとまります）</label>
       <input type="text" id="sesSeries" list="dlSeries">
       <datalist id="dlSeries"></datalist>
+    </div>
+    <div id="fromBox" style="display:none">
+      <label class="f" for="sesFrom">録音を始める項目（途中から録音するとき）</label>
+      <select id="sesFrom"></select>
     </div>
     <div id="partBox" style="display:none">
       <label class="f" for="sesPart">録音する部（大会は午前と午後で録音を分け、メモ一覧では一つにまとまります）</label>
@@ -425,7 +437,7 @@ input,textarea{-webkit-text-security:none}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.15.1</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.17</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -591,6 +603,7 @@ input,textarea{-webkit-text-security:none}
   </div>
   <div id="dPop">
     <div id="dFmtBox"><label for="dFmt">コピー・書き出しの内容</label><select id="dFmt"><option value="body">本文のみ（メモ・聖句＋文字起こし）</option><option value="spk">話者分離つき</option><option value="sum">要約つき（要約＋本文）</option></select></div>
+    <button id="dResume">▶ この記録の続きを録音する</button>
     <button id="dShare">共有…</button>
     <button id="dCopy">テキストをコピー</button>
     <button id="dExport">この講演を書き出し</button>
@@ -1138,6 +1151,16 @@ var SCR = (function () {
     var want = day + '日目 ' + ap;
     return hs.indexOf(want) >= 0 ? want : (hs.filter(function (h) { return h.indexOf(day + '日目') === 0; })[0] || hs[0]);
   }
+  function fillFrom() {
+    var g = isConv() ? findProg($('sesProg').value) : null, sel = $('sesFrom'), keep = sel.value;
+    if (!g) { $('fromBox').style.display = 'none'; return; }
+    var txt = partNow() ? sliceHead(g.text, partNow()) : g.text, its = progItems(txt), n = 0;
+    $('fromBox').style.display = '';
+    sel.innerHTML = '';
+    its.forEach(function (it, i) { if (it.head) return; n++; var o = el('option', null, (it.label || '').slice(0, 60)); o.value = i; sel.appendChild(o); });
+    if (keep && sel.querySelector('option[value="' + keep + '"]')) sel.value = keep;
+    if (n < 2) $('fromBox').style.display = 'none';
+  }
   function fillParts() {
     var g = isConv() ? findProg($('sesProg').value) : null, hs = g ? progHeads(g) : [], sel = $('sesPart'), keep = sel.value;
     $('partBox').style.display = hs.length > 1 ? '' : 'none';
@@ -1184,6 +1207,7 @@ var SCR = (function () {
     if (!other && (!org || visit) && (KTYPE[kind] ? (settings.schedules || []).some(function (g) { return g.type === KTYPE[kind]; }) : false)) $('schBox').style.display = ''; else $('schBox').style.display = 'none';
     if (visit) syncVisit();
     fillParts();
+    fillFrom();
     autoName();
   }
   function syncVisit() {      // 予定表を選んだら、会合の種類・巡回監督・まとまりの名前を自動で入れる
@@ -1214,7 +1238,7 @@ var SCR = (function () {
   }
   $('sesName').addEventListener('input', function () { nameManual = !!$('sesName').value.trim(); });
   $('sesProg').addEventListener('change', function () { refreshDatalists(); fillParts(); autoName(); });
-  $('sesPart').addEventListener('change', function () { partManual = true; autoName(); });
+  $('sesPart').addEventListener('change', function () { partManual = true; fillFrom(); autoName(); });
   $('sesSchItem').addEventListener('change', updateSetup);
   $('sesSch').onchange = function () { fillSchItems(); updateSetup(); };
   $('sesKind').onchange = function () {
@@ -1310,12 +1334,12 @@ var SCR = (function () {
   function memStr(o) { return [o.name, o.sex, o.group, o.role].join('｜').replace(/｜+$/, ''); }
   function addMemRow(v, hl) {
     var o = typeof v === 'string' ? memParse(v) : (v || { name: '', sex: '', group: '', role: '' });
-    var r = el('div', 'drow mrow'), i = el('input'); i.type = 'text'; i.value = o.name; i.setAttribute('aria-label', '名前'); i.className = 'mn';
+    var r = el('div', 'drow mrow'), i = el('input'); i.type = 'text'; i.value = o.name; i.setAttribute('aria-label', '名前'); i.className = 'mn'; i.placeholder = '名前（例：寺本 安之）';
     var s = el('select'); s.className = 'ms'; s.setAttribute('aria-label', '兄弟・姉妹');
     [['', '性別?'], ['兄弟', '兄弟'], ['姉妹', '姉妹']].forEach(function (a) { var x = el('option', null, a[1]); x.value = a[0]; s.appendChild(x); }); s.value = o.sex;
     if (!o.sex) s.classList.add('need');
     s.onchange = function () { s.classList.toggle('need', !s.value); };
-    var gI = el('input'); gI.type = 'text'; gI.value = o.group; gI.placeholder = 'グループ'; gI.className = 'mg'; gI.setAttribute('aria-label', 'グループ');
+    var gI = el('input'); gI.type = 'text'; gI.value = o.group; gI.placeholder = 'グループ（例：2）'; gI.className = 'mg'; gI.setAttribute('aria-label', 'グループ');
     var rl = el('select'); rl.className = 'mr'; rl.setAttribute('aria-label', '役割');
     [['', '役割'], ['責任者', '責任者'], ['補佐', '補佐']].forEach(function (a) { var x = el('option', null, a[1]); x.value = a[0]; rl.appendChild(x); }); rl.value = o.role;
     var d = el('button', null, '削除'); d.onclick = function () { r.remove(); };
@@ -1793,7 +1817,10 @@ var SCR = (function () {
       if (it.head) { box.appendChild(el('div', 'phead', it.label)); return; }
       var b = el('button', 'item' + (it.sub ? ' sub' : '') + (i < itemPos ? ' done' : '') + (i === itemPos ? ' cur' : ''), it.label);
       if (i === itemPos) b.setAttribute('aria-current', 'true');
-      b.onclick = function () { itemPos = i; goTalk(itemTalk[i]); renderRecItems(); };
+      b.onclick = function () {
+        if (running && i !== itemPos && i !== nextItem() && !window.confirm('「' + it.label + '」に切り替えますか？\n（今の項目の録音は、ここで区切られます）')) return;
+        itemPos = i; goTalk(itemTalk[i]); renderRecItems();
+      };
       box.appendChild(b);
     });
     if (hasProg) {
@@ -1967,11 +1994,34 @@ var SCR = (function () {
     bufs = []; bufLen = 0; chunkMax = 0;
     if (!wav) return;
     pending++; showState();
-    queue = queue.then(function () {
-      var t = cur.talks[meta.talk];
-      return api('transcribe', { audio: b64(wav), mime: 'audio/wav', terms: terms + memoTermsFrom(cur.talks), title: t.title, prev: lastText.slice(-120), speakers: !!cur.diar }, 2);
-    }).then(function (text) {
-      text = applyDict(String(text || '').trim());
+    var seq = seqNo++, doneRes;
+    var donePr = new Promise(function (r) { doneRes = r; });
+    queue = queue.then(function () { return donePr; });
+    jobQ.push(function () {
+      var t = cur.talks[meta.talk], prev = lastText.slice(-120);
+      return api('transcribe', { audio: b64(wav), mime: 'audio/wav', terms: terms + memoTermsFrom(cur.talks), title: t.title, prev: prev, speakers: !!cur.diar }, 2)
+        .then(function (text) { results[seq] = { ok: true, text: text, meta: meta, wav: wav, done: doneRes }; }, function (er) { results[seq] = { ok: false, err: er, meta: meta, wav: wav, done: doneRes }; });
+    });
+    pumpJobs();
+  }
+  var seqNo = 0, commitNo = 0, results = {}, jobQ = [], active = 0;
+  function pumpJobs() {
+    while (active < 3 && jobQ.length) {
+      active++;
+      jobQ.shift()().then(function () { active--; commitReady(); pumpJobs(); });
+    }
+  }
+  function commitReady() {      // 先に終わった分があっても、反映は録音した順に行う
+    while (results[commitNo]) {
+      var r = results[commitNo]; delete results[commitNo]; commitNo++;
+      commitOne(r);
+    }
+  }
+  function commitOne(r) {
+    var meta = r.meta, wav = r.wav;
+    Promise.resolve().then(function () {
+      if (!r.ok) throw r.err;
+      var text = applyDict(String(r.text || '').trim());
       if (!text) return;
       lastText = text;
       var t = cur.talks[meta.talk];
@@ -1982,18 +2032,21 @@ var SCR = (function () {
       if (!t.refs) t.refs = [];
       var fresh = SCR.parse(text).filter(function (p) { return t.refs.indexOf(p.ref) < 0; });   // 同じ講演で同じ聖句は1回だけ
       fresh.forEach(function (p) { t.refs.push(p.ref); });
-      return fresh.reduce(function (chain, p) {
+      fresh.reduce(function (chain, p) {      // 聖句の本文取得は、次の文字起こしを待たせない
         return chain.then(function () { return verseBody(p); }).then(function (body) { memoAdd(meta.talk, meta.ms, '聖句', p.ref, body); });
-      }, Promise.resolve());
+      }, Promise.resolve()).catch(function () {});
     }).catch(function (e) {
       var tt = cur.talks[meta.talk];
       tt.transcript += '[' + fmt(meta.ms) + '] （文字起こし待ち）\n';      // 通信が戻ったら自動でやり直す（端末内に音声を保管）
       idbPut('chunks', { key: cur.id + '_' + meta.ms + '_' + Date.now(), sid: cur.id, talkId: tt.id, ms: meta.ms, title: tt.title || '', wav: wav, tries: 0, diar: !!cur.diar }).then(function () { retryN++; showState(); });
       logAdd('err', meta.ms, '文字起こしを保留しました（通信が戻ったら自動でやり直します）: ' + e.message); touch();
-    }).then(function () { pending--; showState(); });
+    }).then(function () { pending--; showState(); r.done(); });
   }
   function onAudio(ev) {
     if (!running || paused) return;
+    var nowT = Date.now();
+    if (lastAudioAt && nowT - lastAudioAt > 5000) noteGap(intAt || lastAudioAt, nowT);
+    lastAudioAt = nowT;
     var inp = ev.inputBuffer.getChannelData(0);
     if (!bufLen) { chunkStartMs = nowMs(); chunkTalk = talkIdx; }
     bufs.push(new Float32Array(inp)); bufLen += inp.length;
@@ -2103,7 +2156,7 @@ var SCR = (function () {
     }
     $('lg').classList.toggle('withprog', hasProg);
     $('log').innerHTML = ''; $('trLast').textContent = '（話し始めると、20〜30秒ほど遅れて表示されます）';
-    lastText = ''; segNo = 0; bufs = []; bufLen = 0; chunkMax = 0; queue = Promise.resolve(); pending = 0;
+    lastText = ''; segNo = 0; bufs = []; bufLen = 0; chunkMax = 0; queue = Promise.resolve(); pending = 0; seqNo = 0; commitNo = 0; results = {}; jobQ = []; active = 0;
     paused = false; pausedTotal = 0; pausedAt = 0; $('pauseBanner').classList.remove('on');
     startAt = Date.now(); running = true;
     $('tab-rec').classList.add('live');
@@ -2128,6 +2181,7 @@ var SCR = (function () {
           if (i === 0) { tk.speaker = honor(schIt.speaker || ''); tk.cong = schIt.cong || sch.cong || ''; } else { tk.speaker = honor(schIt.conductor || ''); tk.cong = sch.cong || ''; } });
       }
       for (var fi = 0; fi < items.length; fi++) if (!items[fi].head) { itemPos = fi; break; }       // 最初の項目を自動で選ぶ
+      if (convPart || (isConv() && $('fromBox').style.display !== 'none')) { var fv = Number($('sesFrom').value); if (fv > 0 && items[fv] && !items[fv].head) itemPos = fv; }      // 途中から録音する
       talkIdx = itemTalk[itemPos] || 0; cur.talks[talkIdx].startMs = 0;
       if (other && congName) cur.talks.forEach(function (t) { t.cong = congName; });
       showTalk(); logAdd('title', 0, talk().title); touch();
@@ -2144,6 +2198,9 @@ var SCR = (function () {
     }
     renderRecItems();
 
+    await beginAudio();
+  }
+  async function buildChain() {      // マイク → 文字起こし用の音声処理（再開のときにも作り直す）
     var AC = window.AudioContext || window.webkitAudioContext;
     actx = new AC();
     if (actx.state === 'suspended') await actx.resume();
@@ -2152,23 +2209,61 @@ var SCR = (function () {
     proc.onaudioprocess = onAudio;
     var mute = actx.createGain(); mute.gain.value = 0;
     src.connect(proc); proc.connect(mute); mute.connect(actx.destination);
-
+    try { analyser = actx.createAnalyser(); analyser.fftSize = 1024; src.connect(analyser); } catch (e) { analyser = null; }
+  }
+  var lastAudioAt = 0, intAt = 0;
+  function hm(t) { var d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function durTxt(ms) { var s = Math.round(ms / 1000), m = Math.floor(s / 60); return (m ? m + '分' : '') + (s % 60) + '秒'; }
+  function checkStall() {      // 音が来なくなったら、すぐ知らせる
+    if (!running || paused || !lastAudioAt || intAt) return;
+    if (Date.now() - lastAudioAt > 5000) {
+      intAt = lastAudioAt;
+      $('intMsg').textContent = '⚠ 録音が止まっています（画面ロックや他のアプリへの切り替えなど）。止まった時刻 ' + hm(intAt);
+      $('intRestart').style.display = ''; $('intBanner').classList.add('on');
+      if (actx && actx.state !== 'running') actx.resume().catch(function () {});
+    }
+  }
+  function noteGap(from, to) {      // 中断が終わった：時間を記録して知らせる
+    intAt = 0;
+    var msg = '録音が ' + durTxt(to - from) + ' 中断していました（' + hm(from) + '〜' + hm(to) + '）。その間の話は録音・文字起こしされていません';
+    $('intMsg').textContent = '⚠ ' + msg; $('intRestart').style.display = 'none'; $('intBanner').classList.add('on');
+    if (cur && talk()) { talk().transcript += '[' + fmt(nowMs()) + '] （' + msg + '）\n'; logAdd('err', nowMs(), msg); touch(); }
+  }
+  $('intClose').onclick = function () { $('intBanner').classList.remove('on'); };
+  async function restartAudio() {      // 止まったマイクをつなぎ直す（記録・項目はそのまま）
+    if (!running) return;
+    try { flushChunk(); } catch (e) {}
+    try { proc.disconnect(); } catch (e) {}
+    try { if (recorder && recorder.state !== 'inactive') recorder.stop(); } catch (e) {}
+    if (stream) stream.getTracks().forEach(function (t) { t.stop(); });
+    try { actx.close(); } catch (e) {}
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } }); }
+    catch (e) { setStatus('マイクを再開できません: ' + e.message); return; }
+    await buildChain();
+    if (segOn && $('chkAudio').checked && window.MediaRecorder) { try { startSegment(); segStartMs = nowMs(); } catch (e) {} }
+    if (intAt) $('intMsg').textContent = '⚠ マイクを再開しました。止まっていた時刻 ' + hm(intAt) + ' 〜 今';
+    lastAudioAt = Date.now();
+  }
+  $('intRestart').onclick = function () { restartAudio(); };
+  document.addEventListener('visibilitychange', function () { if (running && document.visibilityState === 'visible') { checkStall(); if (actx && actx.state !== 'running') actx.resume().catch(function () {}); } });
+  async function beginAudio() {
+    await buildChain(); lastAudioAt = Date.now(); intAt = 0; $('intBanner').classList.remove('on');
     if ($('chkAudio').checked && window.MediaRecorder) {
-      try { startSegment(); segOn = true; segStartMs = 0; }
+      try { startSegment(); segOn = true; segStartMs = nowMs(); }
       catch (e) { logAdd('err', 0, '音声の保存を開始できませんでした: ' + e.message); }
     }
     if (navigator.wakeLock && navigator.wakeLock.request) navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {});
 
-    $('timer').textContent = '00:00:00';
+    $('timer').textContent = fmt(nowMs());
     timerId = setInterval(function () {
       $('timer').textContent = fmt(nowMs());
+      checkStall();
       if (segOn && !paused && nowMs() - segStartMs >= SEGMENT_MS) { try { recorder.stop(); } catch (e) {} try { startSegment(); } catch (e) {} segStartMs = nowMs(); }      // 保存用の録音を5分ごとに区切る（一時停止中は数えない）
     }, 500);
     try {
-      analyser = actx.createAnalyser(); analyser.fftSize = 1024; src.connect(analyser);
-      var fb = new Float32Array(analyser.fftSize);
+      var fb = new Float32Array(1024);
       vuTimer = setInterval(function () {
-        if (paused) { setVu('vuBar', 'vuMsg', 0, true); return; }
+        if (paused || !analyser) { setVu('vuBar', 'vuMsg', 0, true); return; }
         analyser.getFloatTimeDomainData(fb); var pk = 0; for (var i = 0; i < fb.length; i++) { var a = Math.abs(fb[i]); if (a > pk) pk = a; }
         setVu('vuBar', 'vuMsg', pk);
       }, 100);
@@ -2177,9 +2272,58 @@ var SCR = (function () {
     fit(); showState();
   }
 
+  // ---------- 記録の続きから録音する（止まった・閉じてしまった録音を、同じ記録に追記） ----------
+  function lastMsOf(s) {
+    var mx = 0; (s.talks || []).forEach(function (t) {
+      if (t.startMs > mx) mx = t.startMs;
+      String(t.transcript || '').replace(/^\[(\d{1,2}):(\d{2}):(\d{2})\]/gm, function (m, h, mi, se) { var v = ((+h) * 3600 + (+mi) * 60 + (+se)) * 1000; if (v > mx) mx = v; return m; });
+    });
+    return mx;
+  }
+  function pickResume(s) {
+    return new Promise(function (res) {
+      var ov = el('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:20px';
+      var bx = el('div'); bx.style.cssText = 'background:var(--card);border-radius:18px;padding:20px;max-width:560px;width:100%;max-height:86vh;overflow:auto';
+      bx.appendChild(el('h3', null, 'どの項目から録音を再開しますか？'));
+      var sel = el('select'); sel.style.cssText = 'width:100%;font-size:18px;margin:10px 0';
+      var last = 0; (s.talks || []).forEach(function (t, i) { if (String(t.transcript || '').trim()) last = i; });
+      (s.talks || []).forEach(function (t, i) { var o = el('option', null, (String(t.transcript || '').trim() ? '✓ ' : '') + (t.title || '（無題）')); o.value = i; sel.appendChild(o); });
+      sel.value = last;
+      bx.appendChild(sel); bx.appendChild(el('div', 'hint', '✓ は、すでに録音のある項目です。再開すると、この記録の続きに追記されます（時刻も続きから数えます）。'));
+      var row = el('div', 'row'), ok = el('button', 'primary', '▶ 録音を再開'), no = el('button', null, 'やめる');
+      row.appendChild(ok); row.appendChild(no); bx.appendChild(row); ov.appendChild(bx); document.body.appendChild(ov);
+      ok.onclick = function () { ov.remove(); res(Number(sel.value)); }; no.onclick = function () { ov.remove(); res(-1); };
+    });
+  }
+  async function resumeSession() {
+    if (running) { toast('すでに録音中です'); return; }
+    if (!dSes || !dSes.talks || !dSes.talks.length) return;
+    if ($('detail').classList.contains('editing')) readDetail();
+    if (!cfg.url || !cfg.token) { setStatus('先に「設定」でGASのURLと合言葉を入力してください'); return; }
+    var idx = await pickResume(dSes); if (idx < 0) return;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true } }); }
+    catch (er) { setStatus('マイクを使用できません: ' + er.message); return; }
+    var tb = document.querySelector('[data-tab=rec]'); if (tb) tb.click();
+    cur = dSes; cur.resumed = (cur.resumed || 0) + 1;
+    var lastMs = lastMsOf(cur) + 2000;
+    hasProg = !!cur.prog && cur.talks.length > 1;
+    items = hasProg ? cur.talks.map(function (t) { return { label: t.title || '（無題）', title: t.title || '' }; }) : [];
+    itemTalk = {}; items.forEach(function (it, i) { itemTalk[i] = i; });
+    itemPos = hasProg ? idx : -1; talkIdx = idx; questions = []; qSel = -1; memoStart = null; renderQuestions(); setPTab('items'); $('progPane').classList.remove('hasq');
+    lastText = ''; segNo = cur.resumed * 100; bufs = []; bufLen = 0; chunkMax = 0; queue = Promise.resolve(); pending = 0; seqNo = 0; commitNo = 0; results = {}; jobQ = []; active = 0;
+    paused = false; pausedTotal = 0; pausedAt = 0; $('pauseBanner').classList.remove('on');
+    startAt = Date.now() - lastMs; running = true;
+    $('tab-rec').classList.add('live'); $('lg').classList.toggle('withprog', hasProg);
+    $('log').innerHTML = ''; $('trLast').textContent = '（話し始めると、少し遅れて表示されます）';
+    var tk = talk(); if (tk.startMs == null || tk.startMs === '' ) tk.startMs = lastMs;
+    showTalk(); logAdd('title', lastMs, '（録音を再開）' + (tk.title || '')); touch(); renderRecItems();
+    await beginAudio();
+    toast('✓ 録音を再開しました\n「' + (tk.title || '無題') + '」から');
+  }
+  $('dResume').onclick = function () { $('dPop').classList.remove('on'); resumeSession(); };
   function stop() {
     flushChunk();
-    running = false;
+    running = false; intAt = 0; lastAudioAt = 0; $('intBanner').classList.remove('on');
     clearInterval(timerId); clearInterval(saveId); clearInterval(segTimer); clearInterval(vuTimer); segOn = false; analyser = null;
     paused = false; $('pauseBanner').classList.remove('on'); $('btnPause').style.display = '';
     try { if (recorder && recorder.state !== 'inactive') recorder.stop(); } catch (e) {}
@@ -2211,7 +2355,7 @@ var SCR = (function () {
   }
   function resumeRec() {
     if (!running || !paused) return;
-    pausedTotal += Date.now() - pausedAt; paused = false;
+    pausedTotal += Date.now() - pausedAt; paused = false; lastAudioAt = Date.now();
     try { if (recorder && recorder.state === 'paused') recorder.resume(); } catch (e) {}
     $('pauseBanner').classList.remove('on'); $('btnPause').style.display = ''; showState();
     if (cur) logAdd('title', nowMs(), '（再開）');
@@ -2273,6 +2417,7 @@ var SCR = (function () {
       setTimeout(function () { $('regForm').classList.remove('on'); }, 1500);
     });
   };
+  document.addEventListener('visibilitychange', function () { if (running && actx && actx.state !== 'running') actx.resume().catch(function () {}); });
   document.addEventListener('visibilitychange', function () {
     if (running && document.visibilityState === 'visible' && navigator.wakeLock && navigator.wakeLock.request)
       navigator.wakeLock.request('screen').then(function (w) { wakeLock = w; }).catch(function () {});
@@ -2312,15 +2457,17 @@ var SCR = (function () {
     } else if (sp.step === 'ch') {
       $('spTitle').textContent = SCR.books[sp.b - 1].name + '：章';
       var t = el('div', 'tiles');
-      for (var c = 1; c <= CHN[sp.b - 1]; c++) (function (c) { tile(t, '' + c, false, function () { sp.ch = c; sp.step = 'vs'; sp.sel = []; spRender(); }); })(c);
+      for (var c = 1; c <= CHN[sp.b - 1]; c++) (function (c) { tile(t, '' + c, false, function () { sp.ch = c; sp.step = 'vs'; sp.sel = []; sp.extra = 0; spRender(); }); })(c);
       body.appendChild(t);
     } else {
       $('spTitle').textContent = SCR.books[sp.b - 1].name + ' ' + sp.ch + '章：節';
       var max = 40, note = '';
-      if (bibleBooks) { var bk = await getBook(sp.b), cc = bk && bk.c && bk.c[sp.ch]; if (cc) max = Math.max.apply(null, Object.keys(cc).map(Number)); }
+      if (bibleBooks) { var bk = await getBook(sp.b), cc = bk && bk.c && bk.c[sp.ch], ks = cc ? Object.keys(cc).map(Number).filter(function (n) { return n > 0 && isFinite(n); }) : []; if (ks.length) max = Math.max.apply(null, ks); else note = 'この章の節の数が本文から分からないため、目安で表示しています。'; }
       else note = '本文を取り込んでいないため、節の数は目安です。';
+      if (note) { max += (sp.extra || 0); }
       sp.max = max; if (note) body.appendChild(el('div', 'hint', note));
       var t2 = el('div', 'tiles'); body.appendChild(t2);
+      if (note) { var more = el('button', null, '＋ 節をもっと表示'); more.onclick = function () { sp.extra = (sp.extra || 0) + 20; spRender(); }; body.appendChild(more); }
       for (var v = 1; v <= max; v++) (function (v) {
         var b = el('button', sp.sel.indexOf(v) >= 0 ? 'on' : null, '' + v);
         b.onclick = function () {
