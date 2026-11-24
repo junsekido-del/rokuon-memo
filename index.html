@@ -437,10 +437,13 @@ input,textarea{-webkit-text-security:none}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.17</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.23</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
+    <button id="btnVid">動画を取り込む</button>
+    <label class="chk" style="padding:4px 12px"><input type="checkbox" id="vidScene"> 場面説明も付ける（画像も送るので少し高め）</label>
+    <input type="file" id="vidFile" accept="video/*,.mp4,.mov,.m4v" style="display:none" aria-label="取り込む動画ファイル">
     <input type="file" id="impFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.mp4,.mov" style="display:none" aria-label="取り込む音声ファイル">
     <button id="btnExpMd">全件を書き出し（Markdown）</button>
     <button id="btnExpCsv">全件を書き出し（CSV）</button>
@@ -1057,13 +1060,17 @@ var SCR = (function () {
     var last;
     for (var i = 0; i <= (retries || 0); i++) {
       try {
-        var res = await fetch(apiUrl(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, redirect: 'follow' });
+        if (navigator.onLine === false) { var oe = new Error('オフラインです'); oe.offline = true; throw oe; }      // 電波がないときは、待たずにすぐ保留へ
+        var ac = window.AbortController ? new AbortController() : null, tm = ac ? setTimeout(function () { ac.abort(); }, /^(saveAudio|saveSession|transcribeFile|mergeTranscript|summarize)$/.test(action) ? 150000 : 60000) : 0;
+        var res;
+        try { res = await fetch(apiUrl(), { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: body, redirect: 'follow', signal: ac ? ac.signal : undefined }); }
+        finally { clearTimeout(tm); }
         var j = await res.json();
         if (!j.ok) { var er = new Error(j.error || 'エラー'); er.fatal = true; throw er; }
         return j.data;
       } catch (e) {
         last = e;
-        if (e.fatal) break;
+        if (e.fatal || e.offline) break;
         await new Promise(function (r) { setTimeout(r, 1500); });
       }
     }
@@ -1726,6 +1733,10 @@ var SCR = (function () {
     lastMemoEl = x;
     var box = $('memos'); box.appendChild(d); box.scrollTop = box.scrollHeight;
   }
+  function noteHasRef(t, ref) {      // 手で入れた聖句も含め、メモにすでに同じ聖句があるか
+    var k = String(ref || '').replace(/[\s　]/g, ''); if (!k) return false;
+    return String(t.note || '').split('\n').some(function (l) { var m = /【聖句】(.+)$/.exec(l); return m && m[1].replace(/[\s　]/g, '') === k; });
+  }
   function memoAdd(ti, ms, tag, text, body) {
     var t = cur.talks[ti];
     // 聖句の本文は、次の行に全角スペースで字下げして持つ
@@ -1811,14 +1822,24 @@ var SCR = (function () {
 
   function nextItem() { for (var i = itemPos + 1; i < items.length; i++) if (!items[i].head) return i; return -1; }
   function setNextLabel(a, b) { var n = $('btnNext'); n.textContent = a; var s = el('small', 'nexthint', b); s.style.cssText = 'display:block;font-size:12px;font-weight:400;opacity:.85;margin-top:2px'; n.appendChild(s); }
+  function askYN(msg, okLabel) {      // 録音を止めない確認画面（window.confirmは、出ている間、録音の処理が止まる）
+    return new Promise(function (res) {
+      var ov = el('div'); ov.style.cssText = 'position:fixed;inset:0;z-index:99997;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:20px';
+      var bx = el('div'); bx.style.cssText = 'background:var(--card);border-radius:18px;padding:22px;max-width:520px;width:100%';
+      var m = el('div'); m.style.cssText = 'font-size:20px;line-height:1.6;white-space:pre-line;margin-bottom:14px'; m.textContent = msg; bx.appendChild(m);
+      var row = el('div', 'row'), ok = el('button', 'primary', okLabel || 'はい'), no = el('button', null, 'キャンセル');
+      row.appendChild(ok); row.appendChild(no); bx.appendChild(row); ov.appendChild(bx); document.body.appendChild(ov);
+      ok.onclick = function () { ov.remove(); res(true); }; no.onclick = function () { ov.remove(); res(false); };
+    });
+  }
   function renderRecItems() {
     var box = $('recItems'); box.innerHTML = '';
     items.forEach(function (it, i) {
       if (it.head) { box.appendChild(el('div', 'phead', it.label)); return; }
       var b = el('button', 'item' + (it.sub ? ' sub' : '') + (i < itemPos ? ' done' : '') + (i === itemPos ? ' cur' : ''), it.label);
       if (i === itemPos) b.setAttribute('aria-current', 'true');
-      b.onclick = function () {
-        if (running && i !== itemPos && i !== nextItem() && !window.confirm('「' + it.label + '」に切り替えますか？\n（今の項目の録音は、ここで区切られます）')) return;
+      b.onclick = async function () {
+        if (running && i !== itemPos && i !== nextItem() && !(await askYN('「' + it.label + '」に切り替えますか？\n（録音は止まりません。今の項目はここで区切られます）', '切り替える'))) return;
         itemPos = i; goTalk(itemTalk[i]); renderRecItems();
       };
       box.appendChild(b);
@@ -1895,17 +1916,24 @@ var SCR = (function () {
     try {
       var items = (await idbAll('chunks')).sort(function (a, b) { return a.sid < b.sid ? -1 : a.sid > b.sid ? 1 : a.ms - b.ms; });
       retryN = items.length; showState();
-      for (var i = 0; i < items.length; i++) {
-        var it = items[i], text;
-        try { text = await api('transcribe', { audio: b64(it.wav instanceof Uint8Array ? it.wav : new Uint8Array(it.wav)), mime: 'audio/wav', terms: terms, title: it.title || '', prev: '', speakers: !!it.diar }, 0); }
-        catch (er) {
-          it.tries = (it.tries || 0) + 1;
-          if (er.fatal && it.tries >= 5) { await applyRetry(it, '', cache); await idbDel('chunks', it.key); did++; }
-          else await idbPut('chunks', it);
-          if (!er.fatal) break;       // 通信そのものが切れている：次の機会まで待つ
-          continue;
+      var stopAll = false;
+      for (var i0 = 0; i0 < items.length && !stopAll; i0 += 3) {
+        var grp = items.slice(i0, i0 + 3);
+        var outs = await Promise.all(grp.map(function (it) {
+          return api('transcribe', { audio: b64(it.wav instanceof Uint8Array ? it.wav : new Uint8Array(it.wav)), mime: 'audio/wav', terms: terms, title: it.title || '', prev: '', speakers: !!it.diar }, 0)
+            .then(function (t) { return { it: it, text: t }; }, function (er) { return { it: it, er: er }; });
+        }));
+        for (var q = 0; q < outs.length; q++) {
+          var o = outs[q], it = o.it;
+          if (o.er) {
+            it.tries = (it.tries || 0) + 1;
+            if (o.er.fatal && it.tries >= 5) { await applyRetry(it, '', cache); await idbDel('chunks', it.key); did++; }
+            else await idbPut('chunks', it);
+            if (!o.er.fatal) stopAll = true;       // 通信そのものが切れている：次の機会まで待つ
+            continue;
+          }
+          await applyRetry(it, applyDict(String(o.text || '').trim()), cache); await idbDel('chunks', it.key); did++;
         }
-        await applyRetry(it, applyDict(String(text || '').trim()), cache); await idbDel('chunks', it.key); did++;
       }
       var au = await idbAll('audios');
       for (var k = 0; k < au.length; k++) {
@@ -1929,7 +1957,7 @@ var SCR = (function () {
       for (var i = 0; i < ps.length; i++) await idbDel('parts', ps[i].key);
     }
   }
-  window.addEventListener('online', function () { retryPending(); });
+  window.addEventListener('online', function () { retryPending(); if (cur && dirty) saveNow(); });
   setInterval(function () { if (navigator.onLine !== false) retryPending(); }, 30000);
 
   // ---------- 紹介の言葉（「東京本郷会衆の〇〇兄弟です」）から、会衆名と講演者の名前を推測 ----------
@@ -2030,10 +2058,10 @@ var SCR = (function () {
       logAdd('text', meta.ms, text); touch();
       if (!AUTO_SCRIPTURE) return;
       if (!t.refs) t.refs = [];
-      var fresh = SCR.parse(text).filter(function (p) { return t.refs.indexOf(p.ref) < 0; });   // 同じ講演で同じ聖句は1回だけ
+      var fresh = SCR.parse(text).filter(function (p) { return t.refs.indexOf(p.ref) < 0 && !noteHasRef(t, p.ref); });   // 同じ講演で同じ聖句は1回だけ
       fresh.forEach(function (p) { t.refs.push(p.ref); });
       fresh.reduce(function (chain, p) {      // 聖句の本文取得は、次の文字起こしを待たせない
-        return chain.then(function () { return verseBody(p); }).then(function (body) { memoAdd(meta.talk, meta.ms, '聖句', p.ref, body); });
+        return chain.then(function () { return verseBody(p).catch(function () { return ''; }); }).then(function (body) { memoAdd(meta.talk, meta.ms, '聖句', p.ref, body); });
       }, Promise.resolve()).catch(function () {});
     }).catch(function (e) {
       var tt = cur.talks[meta.talk];
@@ -2138,6 +2166,7 @@ var SCR = (function () {
       });
       progText = '公開講演：' + schIt.title + '\n「塔」研究' + (wtTitle ? '：' + wtTitle : '') + ((schIt.conductor || schIt.reader) ? '（' + (schIt.conductor ? '司会：' + schIt.conductor : '') + (schIt.conductor && schIt.reader ? '／' : '') + (schIt.reader ? '朗読：' + schIt.reader : '') + '）' : '');
     }
+    if (g) cur.progId = g.id; if (convPart) cur.part = convPart;
     items = progText ? progItems(progText) : [];
     if (weekday && items.length) {      // 開会（歌と祈り・開会の言葉）と閉会（閉会の言葉・発表・歌と祈り）を前後に足す
       var op = dayIts.filter(function (x) { return /^開会/.test(x.title); })[0], cl = dayIts.filter(function (x) { return /^閉会/.test(x.title); })[0];
@@ -2309,7 +2338,9 @@ var SCR = (function () {
     hasProg = !!cur.prog && cur.talks.length > 1;
     items = hasProg ? cur.talks.map(function (t) { return { label: t.title || '（無題）', title: t.title || '' }; }) : [];
     itemTalk = {}; items.forEach(function (it, i) { itemTalk[i] = i; });
-    itemPos = hasProg ? idx : -1; talkIdx = idx; questions = []; qSel = -1; memoStart = null; renderQuestions(); setPTab('items'); $('progPane').classList.remove('hasq');
+    itemPos = hasProg ? idx : -1; talkIdx = idx;
+    var pg = findProg(cur.progId) || (settings.programs || []).filter(function (x) { return cur.name && cur.name.indexOf(x.name) >= 0; })[0];      // 質問のあるプログラムを探す
+    questions = pg ? progQuestions(pg.text) : []; qSel = -1; memoStart = null; renderQuestions(); setPTab('items'); $('progPane').classList.toggle('hasq', questions.length > 0);
     lastText = ''; segNo = cur.resumed * 100; bufs = []; bufLen = 0; chunkMax = 0; queue = Promise.resolve(); pending = 0; seqNo = 0; commitNo = 0; results = {}; jobQ = []; active = 0;
     paused = false; pausedTotal = 0; pausedAt = 0; $('pauseBanner').classList.remove('on');
     startAt = Date.now() - lastMs; running = true;
@@ -2393,7 +2424,7 @@ var SCR = (function () {
   function applyFz(v) { document.body.classList.remove('fz-s', 'fz-l'); if (v === 's' || v === 'l') document.body.classList.add('fz-' + v); }
   $('fzSel').value = lsGet('rm_fz', 'm'); applyFz($('fzSel').value);
   $('fzSel').onchange = function () { lsSet('rm_fz', $('fzSel').value); applyFz($('fzSel').value); };
-  $('btnStop').onclick = function () { if (window.confirm('録音を停止しますか？')) stop(); };
+  $('btnStop').onclick = async function () { if (await askYN('録音を停止しますか？', '停止する')) stop(); };
   $('trStrip').onclick = function () { $('logPane').classList.toggle('on'); };
   $('logClose').onclick = function () { $('logPane').classList.remove('on'); };
   // 文字起こしの中で選んだ語を、その場で辞書に登録する
@@ -2991,13 +3022,102 @@ var SCR = (function () {
       await api('saveSession', { session: ses }, 1);
       await loadIndex();
       openG[sid] = true; renderList();
-      msg.textContent = '取り込みました（約' + Math.round(len / sr / 60) + '分）。開いて「録音から文字起こしする」を押すと文字起こしが始まります。';
+      msg.textContent = '取り込みました（約' + Math.round(len / sr / 60) + '分）。確認すると文字起こしが始まります。';
       openDetail(sid, 't1');
+      setTimeout(function () { var b = $('dRetrans'); if (b && !b.disabled && b.onclick) b.onclick(); }, 400);
     } catch (e) {
       msg.textContent = '取り込みに失敗: ' + e.message;
     }
     if (ctx) { try { ctx.close(); } catch (e) {} }
     $('impFile').value = '';
+  };
+
+  // ---------- 動画の取り込み（文字起こし＋場面説明） ----------
+  $('btnVid').onclick = function () { $('vidFile').click(); };
+  function vidFrame(video, t) {
+    return new Promise(function (ok) {
+      var done = false;
+      function fin() { if (done) return; done = true; video.onseeked = null; try {
+        var w = 512, h = Math.max(1, Math.round(w * (video.videoHeight || 288) / (video.videoWidth || 512)));
+        var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(video, 0, 0, w, h);
+        ok(cv.toDataURL('image/jpeg', 0.6).split(',')[1]); } catch (e) { ok(null); } }
+      video.onseeked = fin; setTimeout(fin, 4000);
+      try { video.currentTime = t; } catch (e) { fin(); }
+    });
+  }
+  $('vidFile').onchange = async function () {
+    var f = $('vidFile').files[0]; if (!f) return;
+    var vname = window.prompt('この動画のタイトルを入力してください（空のままならファイル名になります）', f.name.replace(/\.[A-Za-z0-9]+$/, ''));
+    if (vname === null) { $('vidFile').value = ''; return; }
+    vname = vname.trim() || f.name.replace(/\.[A-Za-z0-9]+$/, '');
+    var msg = $('listMsg'), ctx = null, url = null, FRAME_S = 30, partial = '', scenes = $('vidScene').checked;
+    try {
+      if (f.size > 400 * 1024 * 1024) throw new Error('ファイルが大きすぎます（400MBまで）。長い動画は分けて取り込んでください');
+      msg.textContent = '動画を読み込み中…（長い動画は数分かかります。画面を閉じないでください）';
+      var AC = window.AudioContext || window.webkitAudioContext;
+      try { ctx = new AC({ sampleRate: 16000 }); } catch (e) { ctx = new AC(); }
+      var audio;
+      var buf = await f.arrayBuffer();
+      audio = await new Promise(function (ok, ng) { ctx.decodeAudioData(buf, ok, function () { ng(new Error('この動画の音声は読み込めませんでした')); }); });
+      buf = null;
+      var video = null;
+      if (scenes) {
+        url = URL.createObjectURL(f);
+        video = document.createElement('video'); video.muted = true; video.playsInline = true; video.preload = 'auto'; video.src = url;
+        await new Promise(function (ok, ng) { video.onloadedmetadata = ok; video.onerror = function () { ng(new Error('この動画の映像は読み込めませんでした')); }; setTimeout(ok, 8000); });
+      }
+      var sr = audio.sampleRate, ch = audio.numberOfChannels, len = audio.length, durS = len / sr;
+      var segLen = Math.floor(sr * SEGMENT_MS / 1000), n = Math.ceil(len / segLen);
+      var now = new Date(), fd = new Date(f.lastModified || Date.now());
+      var sid = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+      var name = vname;
+      var out = '', prev = '', failed = 0, vrefs = [], vseen = {};
+      for (var s = 0; s < n; s++) {
+        msg.textContent = '動画を解析中… ' + (s + 1) + ' / ' + n + '（1区間あたり1〜2分かかります。画面を閉じないでください）';
+        var from = s * segLen, size = Math.min(segLen, len - from), mix = new Float32Array(size);
+        for (var c = 0; c < ch; c++) { var data = audio.getChannelData(c); for (var i = 0; i < size; i++) mix[i] += data[from + i] / ch; }
+        var base = s * SEGMENT_MS, frames = [];
+        for (var t = 0; scenes && t < size / sr; t += FRAME_S) {
+          var d = await vidFrame(video, base / 1000 + t);
+          if (d) frames.push({ t: Math.round(t), data: d });
+        }
+        var res;
+        try { res = await api('describeVideo', { audio: b64(toWav([mix], size, sr)), frames: frames, scenes: scenes, terms: terms, title: name, prev: prev.slice(-120), speakers: true }, 2); }
+        catch (e) { failed++; out += '[' + fmt(base) + '] （この区間の解析に失敗: ' + e.message + '）\n'; continue; }
+        var ms = base;
+        String(res || '').split('\n').forEach(function (line) {
+          line = line.trim(); if (!line) return;
+          var m = line.match(/^\[?(\d{1,3}):(\d{2})\]?\s*(.*)$/), text = line;
+          if (m) { ms = base + (parseInt(m[1], 10) * 60 + parseInt(m[2], 10)) * 1000; text = m[3]; }
+          if (!/^【場面】/.test(text)) {
+            text = applyDict(text); prev = text;
+            SCR.parse(text).forEach(function (p) { if (!vseen[p.ref]) { vseen[p.ref] = 1; vrefs.push({ ms: ms, p: p }); } });
+          }
+          if (text) out += '[' + fmt(ms) + '] ' + text + '\n';
+        });
+        partial = out;
+      }
+      var ses = { id: sid, name: name, date: fd.getFullYear() + '-' + pad(fd.getMonth() + 1) + '-' + pad(fd.getDate()), kind: $('fKind').value || 'その他', talks: [
+        { id: 't1', title: name, cong: '', speaker: '', startMs: 0, transcript: out, summary: '', note: '', tags: [], refs: [], status: '未整理', sumPos: 0 }] };
+      var vt = ses.talks[0], vadd = [];
+      for (var x = 0; x < vrefs.length; x++) {
+        var vb = await verseBody(vrefs[x].p);
+        vt.refs.push(vrefs[x].p.ref);
+        vadd.push('[' + fmt(vrefs[x].ms) + '] 【聖句】' + vrefs[x].p.ref + (vb ? '\n　' + vb : ''));
+      }
+      if (vadd.length) appendNote(vt, vadd.join('\n') + '\n');
+      await api('saveSession', { session: ses }, 1);
+      await loadIndex();
+      openG[sid] = true; renderList();
+      msg.textContent = '取り込みました（約' + Math.round(durS / 60) + '分）' + (failed ? '。失敗した区間が' + failed + '件あります' : '') + '。' + (scenes ? '文字起こしに【場面】の行で場面説明が入っています。' : '文字起こしが入っています。');
+      openDetail(sid, 't1');
+    } catch (e) {
+      msg.textContent = '動画の取り込みに失敗: ' + e.message;
+    }
+    if (url) URL.revokeObjectURL(url);
+    if (ctx) { try { ctx.close(); } catch (e) {} }
+    $('vidFile').value = '';
   };
   $('q').oninput = function () {
     deepHits = null; deepFor = ''; renderList();
@@ -3511,7 +3631,7 @@ var SCR = (function () {
           fresh[ti] += '[' + fmt(ms) + '] ' + text + '\n';
           SCR.parse(text).forEach(function (p) {
             var tk = talks[ti]; if (!tk.refs) tk.refs = [];
-            if (tk.refs.indexOf(p.ref) >= 0) return;
+            if (tk.refs.indexOf(p.ref) >= 0 || noteHasRef(tk, p.ref)) return;
             tk.refs.push(p.ref); found.push({ ti: ti, ms: ms, p: p });
           });
         });
@@ -3606,7 +3726,12 @@ var SCR = (function () {
   function init() {
     $('cfUrl').value = cfg.url; $('cfToken').value = cfg.token;
     if (!cfg.url || !cfg.token) { setStatus('はじめに「設定」でGASのURLと合言葉を入力してください'); return Promise.resolve(); }
-    return api('loadSettings', null, 1).then(function (s) {
+    return api('loadSettings', null, 1).then(function (s) { try { lsSet('rm_settings', s); } catch (er) {} return afterSettings(s, false); }, function (e) {
+      var c = lsGet('rm_settings', null);
+      if (!c) throw e;
+      afterSettings(c, true); setStatus('オフラインです。前回の設定で録音できます（通信が戻ると、自動で保存・文字起こしします）');
+    }).catch(function (e) { setStatus('接続できません: ' + e.message); });
+    function afterSettings(s, offline) {
       settings = { dict: (s && s.dict) || '', programs: (s && s.programs) || [], congs: (s && s.congs) || [], speakers: (s && s.speakers) || [], members: (s && s.members) || [], schedules: (s && s.schedules) || [], ownCong: (s && s.ownCong) || '', kindNames: (s && s.kindNames) || {}, ownGroup: (s && s.ownGroup) || '' };
       $('ownGroup').value = settings.ownGroup; renderKindNames();
       listRows('congRows', settings.congs); listRows('spkRows', settings.speakers); listMem(settings.members); renderProgCongs(true); refreshDatalists(); fillChair();
@@ -3615,19 +3740,21 @@ var SCR = (function () {
       fillSchSelects();
       dictToRows(settings.dict); parseDict(settings.dict);
       fillProgSelects();
-      api('bibleInfo', null, 1).then(function (r) { bibleBooks = (r && r.books) || 0; showBibleState(); }).catch(function () { showBibleState(); });
+      if (offline) { bibleBooks = lsGet('rm_bible', 0); showBibleState(); }
+      else { api('bibleInfo', null, 1).then(function (r) { bibleBooks = (r && r.books) || 0; try { lsSet('rm_bible', bibleBooks); } catch (er) {} showBibleState(); }).catch(function () { showBibleState(); });
       setStatus('「開始」を押すと録音と文字起こしを始めます');
-      if (wide()) loadIndex();
+      if (wide()) loadIndex(); }
       recoverParts().then(function () { return retryPending(); });
       // 前回、Driveに保存しきれなかった分があれば保存する
-      var left = lsGet('rm_cur', null);
+      var left = offline ? null : lsGet('rm_cur', null);
       if (left && left.id && !running) {
         return api('saveSession', { session: left }, 1).then(function () { lsDel('rm_cur'); setStatus('前回の未保存データをDriveに保存しました。「開始」で新しい録音を始められます'); });
       }
-    }).catch(function (e) { setStatus('接続できません: ' + e.message); });
+    }
   }
   fillProgSelects();
   init();
+  try { if ('serviceWorker' in navigator && /^https:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (er) {}
 })();
 </script>
 </body>
