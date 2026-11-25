@@ -437,7 +437,7 @@ input,textarea{-webkit-text-security:none}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.23</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.24</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -3051,6 +3051,11 @@ var SCR = (function () {
     var vname = window.prompt('この動画のタイトルを入力してください（空のままならファイル名になります）', f.name.replace(/\.[A-Za-z0-9]+$/, ''));
     if (vname === null) { $('vidFile').value = ''; return; }
     vname = vname.trim() || f.name.replace(/\.[A-Za-z0-9]+$/, '');
+    if (window.vidBusy) { $('listMsg').textContent = 'いま別の動画を解析中です。終わるまでお待ちください'; $('vidFile').value = ''; return; }
+    var dup = (index || []).some(function (x) { return x.sname === vname; });
+    var MB = Math.round(f.size / 1048576);
+    if (!window.confirm((dup ? '同じ名前の記録がすでにあります。\n\n' : '') + '「' + vname + '」（' + MB + 'MB）の解析を今から始めます。\n・数分〜十数分かかります（画面を閉じないでください）\n・Geminiの利用料がかかります' + ($('vidScene').checked ? '（場面説明あり）' : '（文字起こしのみ）') + '\n\n始めますか？')) { $('vidFile').value = ''; return; }
+    window.vidBusy = true;
     var msg = $('listMsg'), ctx = null, url = null, FRAME_S = 30, partial = '', scenes = $('vidScene').checked;
     try {
       if (f.size > 400 * 1024 * 1024) throw new Error('ファイルが大きすぎます（400MBまで）。長い動画は分けて取り込んでください');
@@ -3115,6 +3120,7 @@ var SCR = (function () {
     } catch (e) {
       msg.textContent = '動画の取り込みに失敗: ' + e.message;
     }
+    window.vidBusy = false;
     if (url) URL.revokeObjectURL(url);
     if (ctx) { try { ctx.close(); } catch (e) {} }
     $('vidFile').value = '';
