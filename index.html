@@ -437,7 +437,7 @@ input,textarea{-webkit-text-security:none}
 
 <!-- メモ一覧 -->
 <section id="tab-list">
-  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.24</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
+  <div class="lhead"><h1 id="listTitle">メモ一覧</h1><small style="opacity:.5;margin-left:6px">v10.25</small><button id="btnMenu" aria-label="メニュー">⋯</button></div>
   <div id="menuPop">
     <button id="btnReload">更新</button>
     <button id="btnImp">音声ファイルを取り込む</button>
@@ -813,13 +813,18 @@ var JW = (function () {
     var r = weekRange(title, pubYear, prevEnd); if (!r) return null;
     var head = '#[' + r.a + '~' + r.b + '] ' + title;
     var h2 = doc.querySelector('h2'); if (h2 && /章|編/.test(h2.textContent)) head += '　' + clean(h2.textContent);
-    var lines = [head];
+    var lines = [head], ents = [];
     Array.prototype.forEach.call(doc.querySelectorAll('h3'), function (h) {
-      var t = clean(h.textContent); if (!/^\d+\.\s*/.test(t)) return;
+      var t = clean(h.textContent), isSong = /^\d+\s*番の歌/.test(t) && !/祈り/.test(t);
+      if (!isSong && !/^\d+\.\s*/.test(t)) return;
       var mins = '', n = h.nextElementSibling, k = 0;
-      while (n && k++ < 3) { var mm = /（(\d+)分）/.exec(clean(n.textContent)); if (mm) { mins = '（' + mm[1] + '分）'; break; } if (/^H\d$/.test(n.tagName)) break; n = n.nextElementSibling; }
-      lines.push(t + mins);
+      if (!isSong) while (n && k++ < 3) { var mm = /（(\d+)分）/.exec(clean(n.textContent)); if (mm) { mins = '（' + mm[1] + '分）'; break; } if (/^H\d$/.test(n.tagName)) break; n = n.nextElementSibling; }
+      ents.push({ song: isSong, text: isSong ? t.replace(/\s+/g, '').replace(/^(\d+番の歌).*$/, '$1') : t + mins });
     });
+    // 番号つきの項目にはさまれた歌（クリスチャンとして生活する の後の歌）だけ残す。開会・閉会の歌は別に入る
+    var firstN = -1, lastN = -1;
+    ents.forEach(function (x, i) { if (!x.song) { if (firstN < 0) firstN = i; lastN = i; } });
+    ents.forEach(function (x, i) { if (!x.song || (i > firstN && i < lastN)) lines.push(x.text); });
     return { lines: lines, end: r.end };
   }
 
